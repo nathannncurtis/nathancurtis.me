@@ -76,7 +76,8 @@
   .k-frieze figure { flex: none; height: var(--ih); cursor: zoom-in; position: relative; }
   .k-frieze figure img { display: block; height: 100%; width: auto; }
   .k-frieze figure.arch img { border-radius: 999px 999px 0 0 / 60% 60% 0 0; }
-  .k-frieze figure.round img { border-radius: 50%; aspect-ratio: 1; object-fit: cover; width: var(--ih); }
+  .k-frieze figure.round { aspect-ratio: 1; }
+  .k-frieze figure.round img { border-radius: 50%; width: 100%; height: 100%; object-fit: cover; }
   .k-frieze figure .cap { position: absolute; left: 0; right: 0; top: 100%; margin-top: 8px; font-size: 13px; opacity: 0; transition: opacity .4s; white-space: nowrap; }
   .k-frieze figure:hover .cap { opacity: .8; }
 
@@ -140,7 +141,10 @@
     #chrome { padding: 12px 16px; }
     #logo { height: 24px; }
     .po { width: calc(100vw - 32px); padding: 10vh 0; }
-    .po .ln small { position: static; display: block; width: auto; margin: .1em 0 .4em 1.4em; }
+    .po .ln small { left: auto; right: 0; top: .25em; width: 42%; text-align: right; font-size: 12px; }
+    .po .ln:has(small) .tx { max-width: 56%; }
+    .k-frieze figure.land { --ih: 58%; }
+    .k-frieze figure.round { --ih: 80%; }
     .mu { --cov: 8em; }
     .k-lights .blob { filter: none; }
   }
@@ -292,6 +296,7 @@ for (const [kind, key, hour] of ORDER) {
       const f = document.createElement('figure');
       if (ARCH.has(p.id)) f.className = 'arch'; else if (ROUND.has(p.id)) f.className = 'round';
       const [aw, ah] = p.aspect.split('/').map(Number);
+      if (aw > ah) f.classList.add('land');
       f.style.setProperty('--ih', aw > ah ? '78%' : '100%');
       f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex" loading="lazy">${capHtml(p)}`;
       addPhoto(p, f);
@@ -442,7 +447,7 @@ function layout() {
   for (const it of items) {
     if (it.kind === 'ph') {
       const [aw, ah] = it.p.aspect.split('/').map(Number);
-      it.inner.style.setProperty('--w', (m ? (aw > ah ? Wv - 32 : Math.round((Wv - 32) * 0.8)) : Math.round(aw > ah ? Math.min(Wv * 0.62, vh() * 0.95) : Math.min(Wv * 0.36, vh() * 0.64))) + 'px');
+      it.inner.style.setProperty('--w', (m ? (aw > ah ? Math.round(Wv * 0.86) : Math.round(Wv * 0.66)) : Math.round(aw > ah ? Math.min(Wv * 0.62, vh() * 0.95) : Math.min(Wv * 0.36, vh() * 0.64))) + 'px');
     } else if (it.kind === 'win') {
       const [aw, ah] = it.p.aspect.split('/').map(Number);
       const real = { 'canyonlands-dawn': 4.23, 'red-rock-road': 4.88, 'snowbound-valley': 2.39 }[it.p.id] || aw / ah;
@@ -467,11 +472,11 @@ function layout() {
   }
   for (const el of day.querySelectorAll('.st')) {
     const n = +el.dataset.n;
-    const w = m ? Math.round((Wv - 32) * 0.36) : Math.round(Wv * ([0.13, 0.17, 0.11, 0.15][n % 4]));
+    const w = m ? Math.round(Wv * 0.26) : Math.round(Wv * ([0.13, 0.17, 0.11, 0.15][n % 4]));
     el.style.width = w + 'px';
     const left = [0.06, 0.78, 0.1, 0.74][n % 4], top = [0.14, 0.58, 0.62, 0.12][n % 4];
-    el.style.left = Math.round((m ? [0.03, 0.6, 0.04, 0.6][n % 4] : left) * Wv) + 'px';
-    el.style.top = Math.round((m ? [0.06, 0.7, 0.72, 0.06][n % 4] : top) * vh()) + 'px';
+    el.style.left = Math.round((m ? [0.04, 0.7, 0.04, 0.7][n % 4] : left) * Wv) + 'px';
+    el.style.top = Math.round((m ? [0.07, 0.8, 0.8, 0.07][n % 4] : top) * vh()) + 'px';
   }
   keys = items.map(it => { const r = it.el.getBoundingClientRect(); return [r.top + scrollY + r.height * 0.5, it.hour]; }).sort((a, b) => a[0] - b[0]);
   lastHour = -1;
