@@ -74,6 +74,10 @@
   .k-lights.idle .blob img { filter: none; }
   .k-lights h3, .k-frieze h3 { position: absolute; left: 7vw; top: 7vh; font-size: 15px; font-weight: normal; font-style: italic; opacity: .5; margin: 0; z-index: 2; }
 
+  .k-orbit .pin { display: block; }
+  .k-orbit figure { position: absolute; left: 50%; top: 50%; cursor: zoom-in; will-change: transform; }
+  .k-orbit figure img { display: block; width: 100%; height: auto; aspect-ratio: var(--ar); object-fit: cover; }
+  .k-orbit figure .cap { margin-top: 9px; opacity: var(--co, 0); }
   .k-frieze .pin { display: block; }
   .k-frieze .track { position: absolute; top: 50%; left: 0; display: flex; align-items: flex-end; gap: 2.6vw; height: var(--fh); transform: translate(0, -50%); will-change: transform; padding-left: 7vw; }
   .k-frieze figure { flex: none; height: var(--ih); cursor: zoom-in; position: relative; }
@@ -188,13 +192,14 @@ const INK_L = [26, 24, 19], INK_D = [233, 228, 216];
 const ORDER = [
   ['mu', 'before', 0.2], ['lights', null, 1.7], ['mu', 'terror', 3.2], ['st', 'campground-fireworks', 3.4],
   ['win', 'canyonlands-dawn', 6.0], ['ph', 'yukon-whites', 6.9], ['po', 'Routine in Green', 7.4], ['win', 'snowbound-valley', 8.1],
-  ['st', 'clear-shallows', 9.2], ['ph', 'old-growth', 9.9], ['st', 'throne-in-the-woods', 10.5], ['ph', 'blue-macaw', 11.2],
+  ['st', 'clear-shallows', 9.2], ['ph', 'old-growth', 9.9], ['st', 'throne-in-the-woods', 10.5], ['orbit', null, 11.2],
   ['frieze', null, 12.4], ['po', 'Rings, Not Stories', 14.2], ['win', 'red-rock-road', 16.2], ['ph', 'sun-over-canyon', 17.2],
   ['ph', 'winter-dusk', 18.0], ['po', 'Burnt Orange', 18.5], ['ph', 'drifting-medusa', 20.4], ['mu', 'fear-of-god', 21.0],
   ['ph', 'harbor-lights', 21.8], ['st', 'alcatraz-steps', 22.4], ['po', 'Scent of Salt', 23.2]
 ];
 const ARCH = new Set(['caryatid', 'hermes', 'draped-marble', 'seated-marble', 'odeon']);
 const ROUND = new Set(['the-tholos']);
+const ORBIT = ['garden-cat', 'blue-macaw', 'taverna-dog'];
 const byId = Object.fromEntries(C.photos.map(p => [p.id, p]));
 const byTitle = Object.fromEntries(C.verse.map(v => [v.title, v]));
 const music = Object.fromEntries(C.music.map(m => [m.id, m]));
@@ -290,6 +295,17 @@ for (const [kind, key, hour] of ORDER) {
       blobs.push({ el: b, p, i, dx: 0, dy: 0, ph: i * 1.7, cx: 0, cy: 0 });
     });
     it.blobs = blobs;
+  } else if (kind === 'orbit') {
+    const it = stage(hour, 'orbit', null, 320);
+    it.cards = ORBIT.map((id, i) => {
+      const p = byId[id];
+      const f = document.createElement('figure');
+      f.style.setProperty('--ar', p.aspect);
+      f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh">${capHtml(p)}`;
+      addPhoto(p, f);
+      it.pin.appendChild(f);
+      return { el: f, p, i };
+    });
   } else if (kind === 'frieze') {
     const greece = C.photos.filter(p => p.collection === 'Greece');
     const it = stage(hour, 'frieze', null, 380);
@@ -458,6 +474,10 @@ function layout() {
       it.whFull = Math.round(Wv / real);
       it.wh = it.p.id === 'red-rock-road' ? it.whFull : Math.round(m ? Math.max(vh() * 0.4, Wv / real * 1.6) : vh() * 0.82);
       it.inner.style.setProperty('--wh', it.wh + 'px');
+    } else if (it.kind === 'orbit') {
+      const w = m ? Math.round(Wv * 0.44) : Math.round(Math.min(Wv * 0.25, vh() * 0.40));
+      it.cw = w;
+      for (const c of it.cards) c.el.style.width = w + 'px';
     } else if (it.kind === 'lights') {
       const H = vh();
       const spots = m ? [[0.03, 0.06, 0.55], [0.42, 0.2, 0.56], [0.0, 0.42, 0.5], [0.45, 0.5, 0.55], [0.08, 0.7, 0.5], [0.5, 0.74, 0.46]]
@@ -564,6 +584,22 @@ function motion(t) {
         const tx = -px * 14 + Math.sin(t / 4000 + b.ph) * 10, ty = -py * 10 + Math.cos(t / 5200 + b.ph) * 8 + (p - 0.5) * -60 * (b.i % 2 ? 1 : 0.5);
         b.dx += (tx - b.dx) * 0.04; b.dy += (ty - b.dy) * 0.04;
         b.el.style.transform = `translate(${b.dx.toFixed(1)}px, ${b.dy.toFixed(1)}px)`;
+      }
+    } else if (it.kind === 'orbit') {
+      // Three stray frames on a tilted ring, bottom-right to upper-left. Scrolling turns it once; time drifts it slowly.
+      const m = mobile.matches, W = innerWidth;
+      const tilt = m ? 1.05 : 0.42, cT = Math.cos(tilt), sT = Math.sin(tilt);
+      const hw = it.cw / 2, hh = it.cw * 2 / 3 + 30;
+      const a = Math.min((H / 2 - hh - 16) / sT, (W / 2 - hw - 16) / cT), b = H * 0.06;
+      const spin = p * Math.PI * 2 + (reduced ? 0 : t / 16000);
+      for (const c of it.cards) {
+        const th = spin + c.i * Math.PI * 2 / 3 - Math.PI / 2, z = Math.sin(th);
+        const u = a * Math.cos(th), v = b * z;
+        const x = u * cT - v * sT, y = u * sT + v * cT, s = 0.5 + 0.5 * (z + 1) / 2;
+        c.el.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), calc(-50% + ${y.toFixed(1)}px)) scale(${s.toFixed(3)})`;
+        c.el.style.zIndex = Math.round(10 + z * 5);
+        c.el.style.opacity = (0.55 + 0.45 * (z + 1) / 2).toFixed(3);
+        c.el.style.setProperty('--co', Math.max(0, z * z * z).toFixed(2));
       }
     } else if (it.kind === 'frieze') {
       const over = friezeTrack.scrollWidth - innerWidth + innerWidth * 0.07;
