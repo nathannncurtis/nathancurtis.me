@@ -1,0 +1,16 @@
+/* TEAM */
+  One person: Nathan Curtis
+  Contact: nathan@nathancurtis.me
+  Site: nathancurtis.me
+
+/* THANKS */
+  The light, for changing.
+  EB Garamond, by Georg Duffner, after Claude Garamont.
+  Whoever left the toilet in the woods.
+
+/* SITE */
+  One page. The sky is painted by hand each frame; the hour is yours.
+  Built with HTML, CSS, a canvas and no framework.
+  Hosted on GitHub Pages behind Cloudflare.
+  Fonts self-hosted. No cookies. Analytics count visits, not people.
+  Photographs, poems and music by the one person above. All rights reserved.

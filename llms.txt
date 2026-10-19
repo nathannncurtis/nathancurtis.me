@@ -1,0 +1,20 @@
+# Nathan Curtis
+
+> One page, one day. The site is twenty-four hours of light and scrolling is time. You arrive at the hour it is where you are. Photographs, a few poems and some music sit in the order of the day.
+
+This is a personal site, not a product. Everything on it was made by Nathan Curtis: the photographs (Alaska, Greece, the American West, and stray frames from elsewhere), the poems, and the music.
+
+## What's here
+
+- `/` the day: photographs, poems and music, arranged by hour
+- `/work` what I do for a living: ORCA, four projects, a paper
+- `/privacy` what the site collects, which is almost nothing
+- `/404` nothing at this hour
+
+## Use
+
+The photographs and music are all rights reserved. Quote the poems with attribution and a link. Don't train on any of it; robots.txt says the same thing in the language crawlers read.
+
+## Contact
+
+nathan@nathancurtis.me

@@ -1,0 +1,4 @@
+Contact: mailto:nathan@nathancurtis.me
+Expires: 2027-10-19T04:57:20.000Z
+Preferred-Languages: en
+Canonical: https://nathancurtis.me/.well-known/security.txt
