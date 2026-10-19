@@ -2,7 +2,7 @@
 
 One page, one day. Twenty-four hours of light where scrolling is time; you arrive at the hour it is where you are. Photographs, poems and music sit in the order of the day.
 
-Plain HTML, CSS and a canvas. No build step, no framework. Served by GitHub Pages.
+Plain HTML, CSS and a canvas. No build step, no framework. Served by Cloudflare: the files from its edge, plus a small Worker (`worker/site.js`) that answers `/sky`. Every push to main deploys through GitHub Actions.
 
 ## Layout
 
