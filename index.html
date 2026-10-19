@@ -74,6 +74,12 @@
   .k-lights.idle .blob img { filter: none; }
   .k-lights h3, .k-frieze h3 { position: absolute; left: 7vw; top: 7vh; font-size: 15px; font-weight: normal; font-style: italic; opacity: .5; margin: 0; z-index: 2; }
 
+  .k-turn .pin { display: block; }
+  .k-turn .ring { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+  .k-turn figure { position: absolute; left: 0; top: 0; cursor: zoom-in; will-change: transform; }
+  .k-turn figure img { display: block; width: 100%; height: auto; aspect-ratio: var(--ar); object-fit: cover; }
+  .k-turn figure .cap { margin-top: 9px; opacity: var(--co, 0); }
+  .k-turn h3 { position: absolute; left: 7vw; top: 7vh; font-size: 15px; font-weight: normal; font-style: italic; opacity: .5; margin: 0; z-index: 2; }
   .k-orbit .pin { display: block; }
   .k-orbit figure { position: absolute; left: 50%; top: 50%; cursor: zoom-in; will-change: transform; }
   .k-orbit figure img { display: block; width: 100%; height: auto; aspect-ratio: var(--ar); object-fit: cover; }
@@ -191,7 +197,7 @@ const HOR = [[0,'#0a0c18'],[4,'#0d1022'],[5.5,'#5a3f4a'],[6.3,'#d9955f'],[7.5,'#
 const INK_L = [26, 24, 19], INK_D = [233, 228, 216];
 
 const ORDER = [
-  ['mu', 'before', 0.2], ['lights', null, 1.7], ['mu', 'terror', 3.2], ['st', 'campground-fireworks', 3.4],
+  ['mu', 'before', 0.2], ['turn', null, 0.8], ['lights', null, 1.7], ['mu', 'terror', 3.2], ['st', 'campground-fireworks', 3.4],
   ['win', 'canyonlands-dawn', 6.0], ['ph', 'yukon-whites', 6.9], ['po', 'Routine in Green', 7.4], ['win', 'snowbound-valley', 8.1],
   ['st', 'clear-shallows', 9.2], ['ph', 'old-growth', 9.9], ['st', 'throne-in-the-woods', 10.5], ['orbit', null, 11.2],
   ['frieze', null, 12.4], ['po', 'Rings, Not Stories', 14.2], ['win', 'red-rock-road', 16.2], ['ph', 'sun-over-canyon', 17.2],
@@ -201,6 +207,8 @@ const ORDER = [
 const ARCH = new Set(['caryatid', 'hermes', 'draped-marble', 'seated-marble', 'odeon']);
 const ROUND = new Set(['the-tholos']);
 const ORBIT = ['garden-cat', 'blue-macaw', 'taverna-dog'];
+const TURN = ['caryatid', 'apollo-olympia', 'hermes', 'marble-horses', 'draped-marble', 'window-light', 'seated-marble', 'terracotta', 'two-faces', 'looking-down', 'athena-heracles'];
+const TURNSET = new Set(TURN);
 const byId = Object.fromEntries(C.photos.map(p => [p.id, p]));
 const byTitle = Object.fromEntries(C.verse.map(v => [v.title, v]));
 const music = Object.fromEntries(C.music.map(m => [m.id, m]));
@@ -296,6 +304,19 @@ for (const [kind, key, hour] of ORDER) {
       blobs.push({ el: b, p, i, dx: 0, dy: 0, ph: i * 1.7, cx: 0, cy: 0 });
     });
     it.blobs = blobs;
+  } else if (kind === 'turn') {
+    const it = stage(hour, 'turn', null, 560);
+    it.pin.innerHTML = `<h3>Marble, Greece 2025</h3><div class="ring"></div>`;
+    const ring = it.pin.querySelector('.ring');
+    it.cards = TURN.map((id, i) => {
+      const p = byId[id];
+      const f = document.createElement('figure');
+      f.style.setProperty('--ar', p.aspect);
+      f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh" loading="lazy">${capHtml(p)}`;
+      addPhoto(p, f);
+      ring.appendChild(f);
+      return { el: f, p, i };
+    });
   } else if (kind === 'orbit') {
     const it = stage(hour, 'orbit', null, 320);
     it.cards = ORBIT.map((id, i) => {
@@ -308,7 +329,7 @@ for (const [kind, key, hour] of ORDER) {
       return { el: f, p, i };
     });
   } else if (kind === 'frieze') {
-    const greece = C.photos.filter(p => p.collection === 'Greece');
+    const greece = C.photos.filter(p => p.collection === 'Greece' && !TURNSET.has(p.id));
     const it = stage(hour, 'frieze', null, 380);
     it.pin.innerHTML = `<h3>Greece, spring 2025</h3><div class="track"></div>`;
     friezeTrack = it.pin.querySelector('.track');
@@ -475,6 +496,10 @@ function layout() {
       it.whFull = Math.round(Wv / real);
       it.wh = it.p.id === 'red-rock-road' ? it.whFull : Math.round(m ? Math.max(vh() * 0.4, Wv / real * 1.6) : vh() * 0.82);
       it.inner.style.setProperty('--wh', it.wh + 'px');
+    } else if (it.kind === 'turn') {
+      const w = m ? Math.round(Wv * 0.36) : Math.round(Math.min(Wv * 0.15, vh() * 0.28));
+      it.cw = w; it.R = m ? Math.round(Math.min(Wv * 0.95, vh() * 0.42)) : Math.round(Math.min(Wv * 0.33, vh() * 0.55));
+      for (const c of it.cards) c.el.style.width = w + 'px';
     } else if (it.kind === 'orbit') {
       const w = m ? Math.round(Wv * 0.44) : Math.round(Math.min(Wv * 0.25, vh() * 0.40));
       it.cw = w;
@@ -592,6 +617,18 @@ function motion(t) {
         const k = (1 + Math.sin(t / 18000 * Math.PI * 2)) / 2;
         wobTurb.setAttribute('baseFrequency', wob.toFixed(4));
         aurTurb.setAttribute('baseFrequency', `${(0.008 + 0.006 * k).toFixed(4)} ${(0.06 - 0.016 * k).toFixed(4)}`); // "0.008 0.06" .. "0.014 0.044"
+      }
+    } else if (it.kind === 'turn') {
+      // Marble on a slow carousel: scrolling brings each figure to the front once; time drifts it gently.
+      const n = it.cards.length, ang = p * 360 * (n - 1) / n + (reduced ? 0 : t / 1000 * 1.1);
+      for (const c of it.cards) {
+        const a = (c.i * 360 / n - ang) * Math.PI / 180, z = Math.cos(a), lit = clamp((z + 0.25) / 1.25, 0, 1);
+        const s = 1200 / (1200 - it.R * z), x = it.R * Math.sin(a) * s;   // simple perspective projection of a ring
+        c.el.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), -50%) scale(${s.toFixed(3)})`;
+        c.el.style.opacity = clamp(1 + z * 1.6, 0, 1).toFixed(3);
+        c.el.style.filter = `brightness(${(0.35 + 0.65 * lit).toFixed(3)})`;
+        c.el.style.zIndex = Math.round(100 + z * 50);
+        c.el.style.setProperty('--co', Math.pow(Math.max(0, z), 4).toFixed(2));
       }
     } else if (it.kind === 'orbit') {
       // Three stray frames on a tilted ring, bottom-right to upper-left. Scrolling turns it once; time drifts it slowly.
