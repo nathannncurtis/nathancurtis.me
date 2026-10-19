@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nathan Curtis, work</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #f1eee7; --ink: #1c1a16; --dim: #847d71; --faint: #c9c2b5; --bar: #2a2721; --line: #dcd6ca; --accent: #a8743f; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f0f0e; --ink: #e9e4d9; --dim: #858075; --faint: #3a3732; --bar: #d8d2c4; --line: #24221f; --accent: #d4a574; } }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; color: var(--ink); font: 16px/27px "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  svg.i { width: 15px; height: 15px; fill: currentColor; flex: none; }
+
+  header { max-width: 1040px; margin: 0 auto; padding: 26px 32px; display: flex; align-items: center; font-size: 14px; color: var(--dim); }
+  header a { transition: color .25s; display: inline-flex; align-items: center; gap: 7px; }
+  header a:hover { color: var(--ink); }
+  header .gh { margin-left: auto; }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 8vh 32px 6vh; }
+  .e { display: grid; grid-template-columns: 220px 1fr; gap: 0 48px; padding: 44px 0 46px; border-top: 1px solid var(--line); }
+  .e:first-child { border-top: 0; padding-top: 0; }
+  .side h2 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; }
+  .side h2 a { background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size .45s cubic-bezier(.2,0,.1,1); padding-bottom: 2px; }
+  .side h2 a:hover { background-size: 100% 1px; }
+  .side h2:has(.mark) { display: flex; align-items: center; gap: 10px; }
+  .side .mark img { display: block; height: 32px; width: auto; transform: translateY(1px); }
+  .side .kind { color: var(--dim); font-size: 14px; line-height: 21px; margin-top: 4px; }
+  .side .name-x { display: block; font: 500 20px/28px "IBM Plex Mono", ui-monospace, monospace; color: var(--dim); white-space: pre; letter-spacing: 0; }
+  .nx { display: block; height: 27px; white-space: pre; font: 15px/27px "IBM Plex Mono", ui-monospace, monospace; color: color-mix(in srgb, var(--dim) 75%, var(--bg)); }
+  .nx b { font-weight: inherit; color: var(--accent); }
+  .reveal .nx, .reveal .name-x { clip-path: inset(0 100% 0 0); }
+  .shown .nx, .shown .name-x { clip-path: inset(0 0 0 0); transition: clip-path .9s cubic-bezier(.65,0,.15,1); transition-delay: var(--d, 0ms); }
+
+
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+  header, main, footer { position: relative; z-index: 1; }
+  @media (pointer: fine) { body.cc, body.cc a, body.cc button { cursor: none; } }
+  #cur { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; font: 500 16px/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--ink); width: 0; height: 0; opacity: 0; transition: opacity .25s; }
+  #cur.on { opacity: 1; }
+  #cur span { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); transition: transform .2s cubic-bezier(.2,0,.1,1), color .2s; }
+  #cur.link span { color: var(--accent); transform: translate(-30%, -50%) scale(1.15); }
+  #cur.x span { color: var(--accent); }
+  #cur.text span { transform: translate(-50%, -55%) scaleY(1.25); }
+  .text { min-width: 0; }
+  .para { margin-bottom: 14px; }
+  .ln { display: block; height: 27px; white-space: pre; }
+  .bar { display: block; height: 27px; position: relative; }
+  .bar::after { content: ""; position: absolute; left: 0; top: 7px; height: 14px; width: var(--w); background: var(--bar); border-radius: 1px; transform-origin: left; }
+  .lead .ln { color: var(--ink); }
+  .e:not(.sealed) .para:not(.lead) .ln { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); }
+  .reveal .ln, .reveal .side > * { opacity: 0; transform: translateY(8px); }
+  .reveal .bar::after, .reveal .name-bar { transform: scaleX(0); }
+  .shown .ln, .shown .side > * { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.2,0,.1,1), transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
+  .shown .bar::after, .shown .name-bar { transform: scaleX(1); transition: transform .7s cubic-bezier(.65,0,.15,1); transition-delay: var(--d, 0ms); }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin-top: 6px; font-size: 13px; color: var(--dim); }
+  .meta .go { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); transition: color .25s; }
+  .meta .go:hover { color: var(--accent); }
+  .meta .go .ar { transition: transform .35s cubic-bezier(.2,0,.1,1); }
+  .meta .go:hover .ar { transform: translateX(4px); }
+  .meta .dot::before { content: "\00b7"; margin-right: 18px; color: var(--faint); }
+  .meta .dot:first-child::before { content: none; }
+  .sealed .meta { color: var(--dim); }
+
+  figure { margin: 22px -16px; padding: 16px; overflow-x: auto; background: color-mix(in srgb, var(--bg) 92%, transparent); border-radius: 3px; }
+  .fig svg { display: block; width: 100%; min-width: 520px; height: auto; overflow: visible; }
+  .fig .k { fill: none; stroke: color-mix(in srgb, var(--ink) 80%, transparent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .fig .f { fill: none; stroke: var(--line); stroke-width: 1; }
+  .fig .q { fill: none; stroke: var(--dim); stroke-width: 1.2; stroke-dasharray: 4 5; stroke-linecap: round; }
+  .fig .a { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .fig .af { fill: var(--accent); }
+  .fig .kf { fill: var(--ink); }
+  .fig .fl { fill: color-mix(in srgb, var(--dim) 35%, transparent); }
+  .fig text { font: 12px "IBM Plex Mono", ui-monospace, monospace; fill: var(--dim); }
+  .fig text.t { fill: var(--ink); }
+  .fig text.at { fill: var(--accent); }
+  figcaption { margin-top: 12px; font: 12px/18px "IBM Plex Mono", ui-monospace, monospace; color: var(--dim); white-space: normal; }
+  figcaption b { color: var(--ink); font-weight: 500; margin-right: 1ch; }
+  .fig .s:not(.q) { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .fig .q, .fig .o { opacity: 0; }
+  .shown .fig .s:not(.q) { stroke-dashoffset: 0; transition: stroke-dashoffset 1.1s cubic-bezier(.65,0,.15,1) var(--fd, 300ms); }
+  .shown .fig .q, .shown .fig .o { opacity: 1; transition: opacity .6s cubic-bezier(.2,0,.1,1) var(--fd, 300ms); }
+  .fig.x .nx { color: color-mix(in srgb, var(--dim) 60%, transparent); }
+  @media (prefers-reduced-motion: reduce) { .fig .s:not(.q) { stroke-dashoffset: 0; } .fig .q, .fig .o { opacity: 1; } }
+  .diagram { font: 12px/18px ui-monospace, "Cascadia Mono", Consolas, Menlo, "DejaVu Sans Mono", monospace; color: color-mix(in srgb, var(--dim) 80%, var(--bg)); width: max-content; }
+  .diagram .r { display: block; height: 18px; white-space: pre; }
+  .diagram .zone { color: var(--dim); }
+  .diagram .div { color: var(--line); }
+  .diagram .bx { color: color-mix(in srgb, var(--ink) 45%, var(--bg)); }
+  .diagram .name { color: var(--ink); font-weight: 500; }
+  .diagram .role, .diagram .lab { color: var(--dim); }
+  .diagram .lit { color: var(--accent) !important; }
+  .diagram .hot { color: var(--accent); }
+  .diagram .trail { color: var(--accent); opacity: .5; }
+  .parts { margin: 4px 0 18px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 22px; font-size: 15px; line-height: 24px; }
+  .parts dt { font-weight: 500; }
+  .parts dt, .parts dd { transition: color .25s; }
+  .parts .on, .parts dd.on { color: var(--accent); }
+  .diagram .hov { color: var(--accent) !important; }
+  #pg { position: fixed; right: 18px; bottom: 14px; z-index: 5; font: 12px/16px "IBM Plex Mono", ui-monospace, monospace; color: var(--dim); display: flex; gap: .5ch; pointer-events: none; }
+  #pg .n { display: inline-block; overflow: hidden; height: 16px; text-align: right; }
+  #pg .n span { display: block; transition: transform .45s cubic-bezier(.2,0,.1,1); }
+  .parts dd { margin: 0; color: var(--dim); }
+
+  footer { max-width: 1040px; margin: 0 auto; padding: 8vh 32px 10vh; display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--dim); font-size: 13px; }
+  footer a.home { display: block; color: var(--ink); }
+  #sig { height: 44px; width: auto; display: block; }
+  #sig path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+  footer a.home:hover #sig path { stroke: var(--accent); transition: stroke .3s; }
+  footer .links { display: flex; gap: 18px; }
+  footer .links a { display: inline-flex; gap: 7px; align-items: center; transition: color .25s; }
+  footer .links a:hover { color: var(--ink); }
+
+  @media (min-width: 1180px) {
+    header, main { max-width: none; padding-left: 4vw; padding-right: 4vw; }
+    .e { grid-template-columns: 260px 1fr minmax(0, 700px); gap: 0; border-top: 0; padding: 0; }
+    .e .text { grid-column: 3; border-top: 1px solid var(--line); padding: 44px 0 46px; }
+    .e:first-child .text { border-top: 0; padding-top: 0; }
+    .e .side { grid-column: 1; grid-row: 1; align-self: start; margin-top: 30px; padding: 12px 16px 14px; background: color-mix(in srgb, var(--bg) 92%, transparent); border-radius: 3px; width: max-content; max-width: 260px; }
+    .e:first-child .side { margin-top: -12px; }
+    footer { max-width: none; padding-left: 4vw; padding-right: 4vw; align-items: flex-end; }
+  }
+  @media (max-width: 760px) {
+    header, main, footer { padding-left: 18px; padding-right: 18px; }
+    main { padding-top: 4vh; }
+    .e { grid-template-columns: 1fr; padding: 34px 0 36px; }
+    .side { margin-bottom: 12px; }
+    .parts { grid-template-columns: 1fr; gap: 0; }
+    .parts dd { margin-bottom: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .reveal .ln, .reveal .side > *, .reveal .bar::after, .reveal .name-bar { opacity: 1; transform: none; } }
+
+  :root { --s0: #c4d0db; --s1: #f1eee7; --dim: #6f695e; --line: #c9cdd0; --bg: color-mix(in oklab, var(--s0), var(--s1) 30%); }
+  @media (prefers-color-scheme: dark) { :root { --s0: #0a1a2e; --s1: #3a586d; --dim: #a29d92; --line: #2a3a48; } }
+  html { background: var(--s0); }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      linear-gradient(in oklab, var(--s0) 0%, color-mix(in oklab, var(--s0), var(--s1) 7%) 24%, color-mix(in oklab, var(--s0), var(--s1) 52%) 62%, var(--s1) 100%);
+    background-blend-mode: soft-light, normal; }
+  @media (min-width: 1180px) { .e .side { background: color-mix(in srgb, var(--s0) 62%, transparent); } }
+  figure { background: color-mix(in srgb, var(--s0) 55%, transparent); }
+</style>
+</head>
+<body>
+<header>
+  <a href="/">Nathan Curtis</a>
+  <a class="gh" href="https://github.com/nathannncurtis"><svg class="i" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>nathannncurtis</a>
+</header>
+<canvas id="bg" aria-hidden="true"></canvas>
+<main id="list"></main>
+<div id="cur"><span>+</span></div>
+<div id="pg" aria-hidden="true">p.<span class="n"><span id="pgn">1</span></span>of <span id="pgt"></span></div>
+<footer>
+  <a class="home" href="/" aria-label="nathancurtis.to"><svg id="sig"></svg></a>
+  <span class="links"><a href="/">nathancurtis.to</a><a href="https://github.com/nathannncurtis">GitHub</a></span>
+</footer>
+<script src="/sig-strokes.js"></script>
+<script type="module">
+import { prepareWithSegments, layoutWithLines } from './pretext/layout.js';
+import { mount } from './ascii3d.js';
+
+const FONT = '16px "IBM Plex Sans"', LEAD = '500 16px "IBM Plex Sans"', LH = 27;
+const GH = '<svg class="i" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>';
+
+const FILL = 'the quick work of a long afternoon was set against the slower record of what had been asked for and what had arrived and each part of it was checked twice before anything moved from one place to the next while the rest of the system kept running beside it without being told';
+const filler = (n, seed) => { const w = FILL.split(' '); let out = [], i = seed % w.length; while (out.join(' ').length < n) { out.push(w[i % w.length]); i += 3 + (seed % 4); } return out.join(' '); };
+
+const entries = [
+  { name: 'ORCA', mark: true, kind: 'An architectural pattern', url: 'https://github.com/nathannncurtis/orca', go: 'Read the draft on GitHub', meta: ['Rust, PostgreSQL in one implementation', 'Draft'],
+    lead: 'Operational store, Read models, Change capture, Anti-corruption layer. A pattern for building a fast, independent platform on top of a system you do not own and cannot change.',
+    paras: [
+      'Many organizations run their core business on a vendor’s system: a database you can read, but whose schema, release cycle and API belong to someone else. Everything else grows around it. Tools query it directly, each keeps its own drifting copy, the vendor’s quirks leak into every one of them, and the API is too slow and too incomplete to build on.',
+      'The usual answers do not fit. Building on the vendor’s API lacks the reads you need. Turning on the database’s change tracking alters a schema you do not own. Mirroring the database gives you speed, but every app still speaks the vendor’s model. ORCA is the shape that remains: own a translated, live copy for reads, and send every write back through the vendor.' ],
+    diagram: true,
+    parts: [
+      ['Change capture', 'A signal of which records changed, taken from outside the vendor’s schema. A hint, never a fact.', 'cap'],
+      ['Operational store', 'Your own copy. Every hint is re-read from the source, committed only, and reconciliation always wins.', 'store'],
+      ['Anti-corruption layer', 'One library that turns the vendor’s model into yours, so nothing else ever sees it.', 'acl'],
+      ['Read models', 'Screen-shaped documents, versioned in commit order and delivered only as whole versions.', 'rm'],
+      ['Writes', 'Through the vendor’s API, judged by what comes back: confirmed, state reached, or undetermined.', 'api'] ] },
+  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', meta: ['Elixir, Phoenix, Go', '372 commits'],
+    lead: 'One place that watches everything I run and tells me what needs my attention.',
+    paras: [ 'The first screen is what needs a look now, which is wider than what is down. The program on each machine opens no port and reports what is on it. Discovery writes a proposal, and nothing is watched until a person accepts it. It suggests changes to its own rules and never makes them.' ] },
+  { sealed: true, fig: true, kind: 'Batch OCR and compression', name: 13, paras: [180, 240], meta: ['Python, Rust'] },
+  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://steddi.io', go: 'steddi.io', web: true, meta: ['Swift, SwiftUI, MapKit', '1,150 commits'],
+    lead: 'For people who already know their routes. Rerouted only when it actually matters.',
+    paras: [ 'Two engines behind one seam. MapKit is the default. A router written from scratch searches an OpenStreetMap road graph with a cost model that prices every turn and learns a driver’s own weights from their drives. When it is on it is tried first and falls back on any miss, so a drive is never stranded.' ] },
+  { sealed: true, kind: 'On-prem document AI', name: 10, paras: [260], meta: ['Python, vLLM'] },
+  { sealed: true, kind: 'Field app', name: 8, paras: [150, 120], meta: ['Kotlin, Swift'] },
+  { name: 'coil', fig: 'coil', kind: 'Python compiler', url: 'https://github.com/nathannncurtis/coil', go: 'GitHub', meta: ['Python, C', 'v0.3.1 on PyPI'],
+    lead: 'Directory in, executable out.',
+    paras: [ 'Existing tools for turning Python into an executable are complicated: hidden imports, missing DLLs, spec files, hook scripts. Coil takes a project folder and returns an .exe with no configuration. The executable is a native launcher, not a renamed interpreter, so the arguments you pass are the arguments your program gets.' ] },
+  { sealed: true, fig: true, kind: 'DICOM aggregation', name: 11, paras: [200], meta: ['Rust'] },
+  { name: 'mdview', fig: 'mdview', kind: 'Markdown viewer', url: 'https://github.com/nathannncurtis/mdview-zig', go: 'GitHub', meta: ['Zig', 'v0.4.0'],
+    lead: 'A native markdown viewer, about 285 KB, with no webview and no runtime.',
+    paras: [ 'Markdown is headings, paragraphs, code and lists. It does not need a browser engine. Each platform is drawn with its own text engine, and the program starts before you notice.' ] },
+  { sealed: true, kind: 'Fleet agent', name: 9, paras: [170, 210], meta: ['Rust, Elixir'] },
+  { sealed: true, kind: 'Operations dashboards', name: 12, paras: [140], meta: ['Elixir'] },
+];
+
+const NX = '15px "IBM Plex Mono"';
+const GLYPH = '-=+*#:%=+-*';
+const rg = () => GLYPH[(Math.random() * GLYPH.length) | 0];
+const noise = t => (typeof t === 'number' ? 'x'.repeat(t) : t).replace(/\S/g, rg);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const cache = new Map();
+const lines = (t, w, f = FONT) => { const k = f + t; if (!cache.has(k)) cache.set(k, prepareWithSegments(t, f)); return layoutWithLines(cache.get(k), w, LH).lines; };
+
+const T = (x, y, t, c = '', d = 0, a = '') => `<text class="o ${c}" x="${x}" y="${y}" ${a} style="--fd:${d}ms">${esc(t)}</text>`;
+const P = (d, c, dl = 0) => `<path class="s ${c}"${c === 'q' ? '' : ' pathLength="1"'} d="${d}" style="--fd:${dl}ms"/>`;
+const FIGS = {
+  dokkit: () => {
+    const rows = [['web-02', 'down'], ['nightly backup', 'late, 40 min'], ['mail certificate', 'expires in 9 days'], ['print-queue', 'found, not watched'], ['files-01 disk', '86%, rising']];
+    let g = T(0, 14, 'needs a look  5', 't', 200) + T(190, 14, 'down  1', 'at', 260) + P('M0 28 H640', 'f', 150);
+    rows.forEach(([n, st], i) => {
+      const y = 52 + i * 26, d = 380 + i * 90;
+      g += (i === 0 ? `<circle class="o af" cx="6" cy="${y - 4}" r="4" style="--fd:${d}ms"/>` : `<circle class="o" cx="6" cy="${y - 4}" r="3.5" fill="none" stroke="var(--accent)" stroke-width="1.2" style="--fd:${d}ms"/>`)
+        + T(24, y, n, 't', d) + T(250, y, st, i === 0 ? 'at' : '', d) + P(`M0 ${y + 10} H640`, 'f', d);
+    });
+    return { h: 200, svg: g + T(24, 194, '+ 31 more, all fine', '', 900) + `<circle class="o fl" cx="6" cy="190" r="3" style="--fd:900ms"/>`,
+      cap: 'The first screen. One row is down. Five need a look.' };
+  },
+  steddi: () => {
+    let g = '';
+    for (const y of [30, 100, 170]) g += P(`M20 ${y} H620`, 'f', 100);
+    for (const x of [80, 240, 400, 560]) g += P(`M${x} 10 V190`, 'f', 100);
+    g += P('M80 170 H560 V30', 'q', 300) + P('M80 170 V30 H560', 'k', 500)
+      + `<circle class="o" cx="560" cy="170" r="11" fill="none" stroke="var(--accent)" stroke-width="1.6" style="--fd:1200ms"/>`
+      + T(452, 194, 'unprotected left', 'at', 1300) + T(452, 208, '3 lanes oncoming', '', 1350)
+      + `<circle class="o" cx="80" cy="170" r="5" fill="none" stroke="var(--ink)" stroke-width="1.4" style="--fd:400ms"/><circle class="o kf" cx="560" cy="30" r="5" style="--fd:1100ms"/>`
+      + T(92, 188, 'start', '', 400) + T(572, 26, 'there', 't', 1100)
+      + T(250, 162, '4.1 km, one left across traffic', '', 700) + T(92, 22, '4.3 km, right turns only', 't', 900);
+    return { h: 214, svg: g, cap: 'The shorter way ends in an unprotected left. The router prices the turn and takes the longer one.' };
+  },
+  coil: () => {
+    const tree = ['myproject/', '├─ main.py', '├─ app/', '│  ├─ core.py', '│  └─ ui.py', '├─ assets/', '└─ requirements.txt'];
+    let g = tree.map((l, i) => T(0, 20 + i * 21, l, i ? '' : 't', 200 + i * 60, 'xml:space="preserve"')).join('');
+    g += P('M200 82 H400', 'k', 700) + P('M392 76 L400 82 L392 88', 'k', 1000) + T(214, 72, 'coil build ./myproject', 't', 800)
+      + P('M468 34 H516 L534 52 V130 H468 Z', 'a', 1000) + P('M516 34 V52 H534', 'a', 1300) + T(452, 156, 'myproject.exe', 'at', 1400);
+    return { h: 164, svg: g, cap: 'One command. No spec file, no hooks, no list of hidden imports.' };
+  },
+  mdview: () => {
+    const W = 600, big = 200 * 1024, small = 285;
+    const g = T(0, 14, 'an Electron app', '', 200) + T(W, 14, '~200 MB', '', 200, 'text-anchor="end"')
+      + `<rect class="o fl" x="0" y="24" width="${W}" height="14" rx="1" style="--fd:400ms"/>`
+      + T(0, 72, 'mdview', 't', 700) + T(W, 72, '285 KB', 'at', 700, 'text-anchor="end"')
+      + `<rect class="o af" x="0" y="82" width="${Math.max(1.5, W * small / big).toFixed(2)}" height="14" style="--fd:900ms"/>`;
+    return { h: 100, svg: g, cap: 'Drawn to scale. The amber sliver is mdview.' };
+  },
+};
+const figure = (e, n) => {
+  if (e.sealed) return `<figure class="fig x">${[0, 1, 2, 3].map(j => `<span class="nx" style="--d:${300 + j * 60}ms">${esc(noise('x'.repeat(30 + ((j * 17 + n * 5) % 34))))}</span>`).join('')}<figcaption><b>Fig. ${n}</b>${esc(noise('xxxx xxxxxx xx xxxxxxx xxxx'))}</figcaption></figure>`;
+  const f = FIGS[e.fig]();
+  return `<figure class="fig"><svg viewBox="-4 -4 648 ${f.h + 8}" aria-hidden="true">${f.svg}</svg><figcaption><b>Fig. ${n}</b>${esc(f.cap)}</figcaption></figure>`;
+};
+const list = document.getElementById('list');
+let figN = 1;
+entries.forEach(e => { if (e.fig) e.figN = ++figN; });
+entries.forEach((e, i) => {
+  const a = document.createElement('article');
+  a.className = 'e reveal' + (e.sealed ? ' sealed' : '');
+  if (e.sealed) e.text = e.paras.map((n, j) => filler(n, i * 7 + j * 13));
+  a.innerHTML = `<div class="side">${e.sealed ? `<span class="name-x" style="--d:0ms">${esc(noise(e.name))}</span>` : `<h2><a href="${e.url}" target="_blank" rel="noopener">${esc(e.name)}</a>${e.mark ? `<picture class="mark" aria-hidden="true"><source media="(prefers-color-scheme: dark)" srcset="orca-mark-dark.svg"><img src="orca-mark-light.svg" alt=""></picture>` : ''}</h2>`}<div class="kind">${esc(e.kind)}</div></div><div class="text"></div>`;
+  list.appendChild(a);
+  e.el = a; e.textEl = a.querySelector('.text');
+});
+
+function render(e) {
+  const w = e.textEl.clientWidth;
+  let n = 0, html = '';
+  const d = () => `--d:${Math.min(n++, 14) * 45 + 80}ms`;
+  if (e.sealed) {
+    for (const t of e.text) html += `<div class="para">${lines(t, w, NX).map(l => `<span class="nx" style="${d()}">${esc(noise(l.text.replace(/\s+$/, '')))}</span>`).join('')}</div>`;
+    if (e.fig) html += figure(e, e.figN);
+  } else {
+    html += `<div class="para lead">${lines(e.lead, w, LEAD).map(l => `<span class="ln" style="font-weight:500;${d()}">${esc(l.text)}</span>`).join('')}</div>`;
+    e.paras.forEach((p, j) => {
+      html += `<div class="para">${lines(p, w).map(l => `<span class="ln" style="${d()}">${esc(l.text)}</span>`).join('')}</div>`;
+      if (e.diagram && j === 0) html += `<figure><div class="diagram" id="diagram"></div><figcaption><b>Fig. 1</b>The pattern, end to end. Hover a part to find it.</figcaption></figure>`;
+    });
+    if (e.fig) html += figure(e, e.figN);
+    if (e.parts) html += `<dl class="parts">${e.parts.map(([k, v, id]) => `<dt class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(k)}</dt><dd class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(v)}</dd>`).join('')}</dl>`;
+  }
+  const meta = (e.meta || []).map(m => `<span class="dot">${esc(m)}</span>`).join('');
+  const go = e.sealed ? '' : `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
+  html += `<div class="meta ln" style="height:auto;white-space:normal;${d()}">${meta}${go}</div>`;
+  e.textEl.innerHTML = html;
+  if (e.diagram) { drawDiagram(); hotNow = new Map(); litNow = new Set(); }
+}
+
+const diagram = (() => {
+  const W = 92, H = 13;
+  const g = Array.from({ length: H }, () => Array(W).fill(' ')), cls = Array.from({ length: H }, () => Array(W).fill('')), bid = Array.from({ length: H }, () => Array(W).fill(''));
+  const put = (r, c, s, k = '', id = '') => { for (let i = 0; i < s.length; i++) { g[r][c + i] = s[i]; cls[r][c + i] = k; bid[r][c + i] = id; } };
+  const box = (r, c, w, id, name, role) => {
+    put(r, c, '\u256d' + '\u2500'.repeat(w - 2) + '\u256e', 'bx', id);
+    put(r + 1, c, '\u2502', 'bx', id); put(r + 1, c + 1, (' ' + name).padEnd(w - 2), 'name', id); put(r + 1, c + w - 1, '\u2502', 'bx', id);
+    put(r + 2, c, '\u2502', 'bx', id); put(r + 2, c + 1, (' ' + role).padEnd(w - 2), 'role', id); put(r + 2, c + w - 1, '\u2502', 'bx', id);
+    put(r + 3, c, '\u2570' + '\u2500'.repeat(w - 2) + '\u256f', 'bx', id);
+  };
+  for (let r = 0; r < H; r++) { put(r, 18, '\u2506', 'div'); put(r, 73, '\u2506', 'div'); }
+  put(0, 1, 'VENDOR', 'zone'); put(0, 21, 'YOUR PLATFORM', 'zone'); put(0, 76, 'CLIENTS', 'zone');
+  box(2, 1, 15, 'db', 'database', 'not yours');
+  box(2, 22, 14, 'cap', 'capture', 'hints only');
+  box(2, 39, 14, 'store', 'store', 'your copy');
+  box(2, 57, 15, 'rm', 'read models', 'versioned');
+  box(2, 76, 16, 'app', 'app', 'your screens');
+  box(9, 1, 15, 'api', 'vendor API', 'every write');
+  const h = (r, c0, c1) => { const o = [], s = c1 >= c0 ? 1 : -1; for (let c = c0; c !== c1 + s; c += s) o.push([r, c]); return o; };
+  const v = (c, r0, r1) => { const o = [], s = r1 >= r0 ? 1 : -1; for (let r = r0; r !== r1 + s; r += s) o.push([r, c]); return o; };
+  const seg = (cells, ch) => cells.forEach(([r, c]) => { g[r][c] = ch; cls[r][c] = ''; bid[r][c] = ''; });
+  const set = (r, c, ch) => { g[r][c] = ch; cls[r][c] = ''; };
+  const path = [], dest = [];
+  put(1, 16, 'hint', 'lab'); put(1, 51, 'translate', 'lab', 'acl'); put(1, 72, 'whole', 'lab');
+  set(3, 15, '\u251c'); seg(h(3, 16, 20), '\u2500'); set(3, 21, '>'); path.push(h(3, 16, 21)); dest.push('cap');
+  set(3, 35, '\u251c'); seg(h(3, 36, 37), '\u2500'); set(3, 38, '>'); path.push(h(3, 36, 38)); dest.push('store');
+  set(5, 45, '\u252c'); seg(v(45, 6, 6), '\u2502'); set(7, 45, '\u256f'); seg(h(7, 9, 44), '\u2500'); set(7, 8, '\u2570'); set(6, 8, '\u2502'); set(5, 8, '^');
+  put(7, 12, ' re-read by key, committed only ', 'lab');
+  path.push([[6, 45], [7, 45], ...h(7, 44, 9), [7, 8], [6, 8], [5, 8]]); dest.push('db');
+  set(3, 52, '\u251c'); seg(h(3, 53, 55), '\u2500'); set(3, 56, '>'); h(3, 53, 56).forEach(([r, c]) => bid[r][c] = 'acl'); path.push(h(3, 53, 56)); dest.push('rm');
+  set(3, 71, '\u251c'); seg(h(3, 72, 74), '\u2500'); set(3, 75, '>'); path.push(h(3, 72, 75)); dest.push('app');
+  set(5, 83, '\u252c'); seg(v(83, 6, 9), '\u2502'); set(10, 83, '\u256f'); seg(h(10, 17, 82), '\u2500'); set(10, 16, '<');
+  put(10, 36, ' one claimer, never resent blind ', 'lab');
+  path.push([...v(83, 6, 9), [10, 83], ...h(10, 82, 16)]); dest.push('api');
+  return { g, cls, bid, W, path, dest };
+})();
+
+let dcells = null, dbox = null;
+function drawDiagram() {
+  const el = document.getElementById('diagram'); if (!el) return;
+  const { g, cls, bid, W } = diagram;
+  dcells = []; dbox = {};
+  el.textContent = '';
+  for (let r = 0; r < g.length; r++) {
+    const row = document.createElement('span'); row.className = 'r';
+    for (let c = 0; c < W; c++) {
+      const sp = document.createElement('span');
+      sp.textContent = g[r][c]; if (cls[r][c]) sp.className = cls[r][c];
+      row.appendChild(sp); dcells.push(sp);
+      const id = bid[r][c]; if (id) { (dbox[id] ||= []).push(sp); sp.dataset.b = id; }
+    }
+    el.appendChild(row);
+  }
+}
+let raf = 0, hotNow = new Map(), litNow = new Set();
+function paintCell(idx, k) {
+  const sp = dcells[idx], r = (idx / diagram.W) | 0, c = idx % diagram.W, ch = diagram.g[r][c];
+  if (k === undefined) { sp.className = diagram.cls[r][c]; sp.textContent = ch; return; }
+  sp.className = k ? 'trail' : 'hot';
+  sp.textContent = !k && '\u2500\u2502'.includes(ch) ? '\u2022' : ch;
+}
+function flow(on) {
+  cancelAnimationFrame(raf); raf = 0;
+  if (!dcells || !document.getElementById('diagram')?.firstChild) drawDiagram();
+  for (const idx of hotNow.keys()) paintCell(idx); hotNow = new Map();
+  for (const id of litNow) dbox[id]?.forEach(sp => sp.classList.remove('lit')); litNow = new Set();
+  if (!on) return;
+  let fi = 0, t0 = performance.now(), arrived = false, lastI = -1;
+  const lit = new Map();
+  const tick = now => {
+    raf = requestAnimationFrame(tick);
+    const cells = diagram.path[fi], i = Math.floor((now - t0) / 34);
+    if (i >= cells.length && !arrived) { arrived = true; lit.set(diagram.dest[fi], now + 520); }
+    if (i >= cells.length + 6) { fi = (fi + 1) % diagram.path.length; arrived = false; t0 = now + (fi === 0 ? 1100 : fi === 2 || fi === 5 ? 380 : 160); }
+    const want = new Set(); for (const [id, until] of lit) if (until > now) want.add(id); else lit.delete(id);
+    for (const id of litNow) if (!want.has(id)) dbox[id]?.forEach(sp => sp.classList.remove('lit'));
+    for (const id of want) if (!litNow.has(id)) dbox[id]?.forEach(sp => sp.classList.add('lit'));
+    litNow = want;
+    if (i === lastI) return;
+    lastI = i;
+    const next = new Map();
+    for (let k = 0; k < 4; k++) { const j = i - k; if (j >= 0 && j < cells.length) next.set(cells[j][0] * diagram.W + cells[j][1], k); }
+    for (const idx of hotNow.keys()) if (!next.has(idx)) paintCell(idx);
+    for (const [idx, k] of next) if (hotNow.get(idx) !== k) paintCell(idx, k);
+    hotNow = next;
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+await Promise.all([document.fonts.load(FONT), document.fonts.load(LEAD), document.fonts.load('12px "IBM Plex Mono"'), document.fonts.load(NX)]);
+entries.forEach(render);
+
+const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add('shown'); io.unobserve(x.target); } }), { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
+entries.forEach(e => io.observe(e.el));
+new IntersectionObserver(es => flow(es[0].isIntersecting), { threshold: 0.25 }).observe(entries[0].el);
+
+let rw = innerWidth;
+addEventListener('resize', () => { if (innerWidth === rw) return; rw = innerWidth; const on = !!raf; entries.forEach(render); flow(on); });
+
+const fine = matchMedia('(pointer: fine)').matches;
+const dark = matchMedia('(prefers-color-scheme: dark)');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+
+
+const bg = document.getElementById('bg');
+let art = null, need = true, curPage = -1;
+const pageIndex = () => { const line = innerHeight * 0.45; let k = 0; for (let i = 0; i < entries.length; i++) if (entries[i].el.getBoundingClientRect().top <= line) k = i; return k; };
+const pageMode = () => entries[pageIndex()].sealed ? 'sealed' : 'open';
+document.getElementById('pgt').textContent = entries.length;
+function setPage(i) {
+  art?.turn(entries[i].sealed ? 'sealed' : 'open');
+  const n = document.getElementById('pgn'), dir = i > (+n.textContent - 1) ? 1 : -1;
+  n.style.transform = `translateY(${dir * -100}%)`;
+  setTimeout(() => { n.style.transition = 'none'; n.textContent = i + 1; n.style.transform = `translateY(${dir * 100}%)`; void n.offsetWidth; n.style.transition = ''; n.style.transform = 'none'; }, 180);
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function place() { const m = innerWidth < 760; return { cx: m ? 0.5 : 0.27, cy: 0.54, size: m ? 0.95 : 1.12, alpha: dark.matches ? 0.42 : 0.46, color: () => css('--dim') }; }
+function load() { const m = art?.mode; art = mount(bg, { ...place(), mode: m || pageMode() }); need = true; }
+load();
+let yaw = 0.55 * Math.sin(scrollY * 0.0011), drawn = NaN;
+const frame = () => {
+  const target = 0.55 * Math.sin(scrollY * 0.0011);
+  yaw = still ? target : yaw + (target - yaw) * 0.22;
+  if (Math.abs(target - yaw) < 1e-4) yaw = target;
+  const pi = pageIndex();
+  if (pi !== curPage) { curPage = pi; setPage(pi); }
+  if (need || yaw !== drawn || art.busy()) { art.draw(yaw); drawn = yaw; need = false; }
+  requestAnimationFrame(frame);
+};
+requestAnimationFrame(frame);
+addEventListener('resize', load);
+dark.addEventListener('change', load);
+
+list.addEventListener('pointerover', e => {
+  const b = e.target.closest('[data-b]')?.dataset.b || e.target.closest('[data-part]')?.dataset.part || null;
+  list.querySelectorAll('.hov').forEach(x => x.classList.remove('hov'));
+  list.querySelectorAll('.parts .on').forEach(x => x.classList.remove('on'));
+  if (!b) return;
+  (dbox?.[b] || []).forEach(sp => sp.classList.add('hov'));
+  list.querySelectorAll(`[data-part="${b}"]`).forEach(x => x.classList.add('on'));
+});
+
+document.addEventListener('copy', e => {
+  const sel = getSelection(); if (!sel.rangeCount || sel.isCollapsed) return;
+  const r = sel.getRangeAt(0);
+  const within = n => (n.nodeType === 1 ? n : n.parentElement)?.closest('.e.sealed');
+  const box = document.createElement('div'); box.appendChild(r.cloneContents());
+  const touched = within(r.startContainer) || within(r.endContainer) || box.querySelector('.nx, .name-x');
+  if (!touched) return;
+  if (!box.querySelector('.nx, .name-x, .para, .side, .e')) { e.clipboardData.setData('text/plain', '[redacted]'); e.preventDefault(); return; }
+  box.querySelectorAll('.e.sealed .text .para, .text .para:has(.nx)').forEach(x => x.replaceWith('[redacted]\n'));
+  box.querySelectorAll('.nx, .name-x').forEach(x => x.replaceWith('[redacted]'));
+  box.querySelectorAll('.para .ln').forEach(x => x.append(' '));
+  box.querySelectorAll('.meta .dot').forEach(x => { if (x.nextElementSibling) x.append(' · '); });
+  box.querySelectorAll('.parts dt').forEach(x => x.append(': '));
+  box.querySelectorAll('.para, .side, .meta, h2, .kind, .parts dd').forEach(x => x.append('\n'));
+  const text = box.textContent.replace(/(\[redacted\]\s*)+/g, '[redacted]\n').replace(/ {2,}/g, ' ').replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  e.clipboardData.setData('text/plain', text); e.preventDefault();
+});
+
+console.log('%cThe redacted text isn\u2019t in this page. There\u2019s nothing to find.', 'font: 12px "IBM Plex Mono", monospace; color: #a8743f;');
+
+if (fine) {
+  document.body.classList.add('cc');
+  const cur = document.getElementById('cur'), glyph = cur.firstChild;
+  addEventListener('pointermove', e => {
+    cur.classList.add('on');
+    cur.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    const t = e.target;
+    const link = t.closest('a'), x = t.closest('.e.sealed'), txt = t.closest('.text .ln, .lead, .parts, .diagram');
+    cur.className = 'on' + (link ? ' link' : x ? ' x' : txt ? ' text' : '');
+    glyph.textContent = link ? '→' : x ? rg() : txt ? '|' : '+';
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => cur.classList.remove('on'));
+
+  let mx = -1e4, my = -1e4, live = null, sraf = 0;
+  const shimmer = () => {
+    if (!live) { sraf = 0; return; }
+    for (const s of live.querySelectorAll('.nx, .name-x')) {
+      const b = s.getBoundingClientRect();
+      if (Math.abs(b.top + b.height / 2 - my) > 70) continue;
+      const cwx = b.width / Math.max(1, s.textContent.length);
+      const chars = [...s.textContent];
+      for (let i = 0; i < chars.length; i++) {
+        if (chars[i] === ' ') continue;
+        const d = Math.hypot(b.left + (i + .5) * cwx - mx, b.top + b.height / 2 - my);
+        if (d < 110 && Math.random() < .45 * (1 - d / 110)) chars[i] = rg();
+      }
+      s.textContent = chars.join('');
+    }
+    sraf = setTimeout(() => requestAnimationFrame(shimmer), 45);
+  };
+  document.getElementById('list').addEventListener('pointermove', e => {
+    mx = e.clientX; my = e.clientY;
+    const s = e.target.closest('.e.sealed');
+    live = s; if (s && !sraf) sraf = requestAnimationFrame(shimmer);
+  }, { passive: true });
+  document.getElementById('list').addEventListener('pointerleave', () => { live = null; });
+}
+
+const sig = document.getElementById('sig');
+if (window.SIG) { sig.setAttribute('viewBox', `0 0 ${SIG.w} ${SIG.h}`); sig.innerHTML = SIG.paths.map(p => `<path d="${p.d}" style="stroke-width:${p.w}"/>`).join(''); }
+</script>
+</body>
+</html>
