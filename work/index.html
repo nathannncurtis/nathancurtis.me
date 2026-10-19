@@ -200,13 +200,13 @@ const entries = [
       ['Anti-corruption layer', 'One library that turns the vendor’s model into yours, so nothing else ever sees it.', 'acl'],
       ['Read models', 'Screen-shaped documents, versioned in commit order and delivered only as whole versions.', 'rm'],
       ['Writes', 'Through the vendor’s API, judged by what comes back: confirmed, state reached, or undetermined.', 'api'] ] },
-  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', meta: ['Elixir, Phoenix, Go', '372 commits', 'Still being built'],
+  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', site: 'https://dokkit.dev', meta: ['Elixir, Phoenix, Go', '372 commits', 'Still being built'],
     lead: 'One place that watches everything I run and tells me what needs my attention.',
     paras: [ 'The first screen is what needs a look now, which is wider than what is down. The program on each machine opens no port and reports what is on it. Discovery writes a proposal, and nothing is watched until a person accepts it. It suggests changes to its own rules and never makes them.' ] },
   { sealed: true, fig: true, kind: 'Batch OCR and compression', name: 13, paras: [180, 240], meta: ['Python, Rust'] },
-  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', meta: ['Swift, SwiftUI, MapKit', '1,150 commits', 'Still being built'],
+  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', site: 'https://steddi.io', meta: ['Swift, SwiftUI, MapKit', '1,150 commits', 'Still being built'],
     lead: 'For people who already know their routes. Rerouted only when it actually matters.',
-    paras: [ 'Two engines behind one seam. MapKit is the default. A router written from scratch searches an OpenStreetMap road graph with a cost model that prices every turn and learns a driver’s own weights from their drives. When it is on it is tried first and falls back on any miss, so a drive is never stranded.' ] },
+    paras: [ 'Drive a route your way once and it is saved. Turn-by-turn is its own engine, with no navigation SDK. A faster way is offered only when it saves enough of what is left of the drive: a larger share on a short drive, a smaller one on a long drive, never less than a minute and a half, and never in the last three minutes.' ] },
   { sealed: true, kind: 'On-prem document AI', name: 10, paras: [260], meta: ['Python, vLLM'] },
   { sealed: true, kind: 'Field app', name: 8, paras: [150, 120], meta: ['Kotlin, Swift'] },
   { name: 'coil', fig: 'coil', kind: 'Python compiler', url: 'https://github.com/nathannncurtis/coil', go: 'GitHub', meta: ['Python, C', 'v0.3.1 on PyPI'],
@@ -243,16 +243,18 @@ const FIGS = {
       cap: 'The first screen. One row is down. Five need a look.' };
   },
   steddi: () => {
-    let g = '';
-    for (const y of [30, 100, 170]) g += P(`M20 ${y} H620`, 'f', 100);
-    for (const x of [80, 240, 400, 560]) g += P(`M${x} 10 V190`, 'f', 100);
-    g += P('M80 170 H560 V30', 'q', 300) + P('M80 170 V30 H560', 'k', 500)
-      + `<circle class="o" cx="560" cy="170" r="11" fill="none" stroke="var(--accent)" stroke-width="1.6" style="--fd:1200ms"/>`
-      + T(452, 194, 'unprotected left', 'at', 1300) + T(452, 208, '3 lanes oncoming', '', 1350)
-      + `<circle class="o" cx="80" cy="170" r="5" fill="none" stroke="var(--ink)" stroke-width="1.4" style="--fd:400ms"/><circle class="o kf" cx="560" cy="30" r="5" style="--fd:1100ms"/>`
-      + T(92, 188, 'start', '', 400) + T(572, 26, 'there', 't', 1100)
-      + T(250, 162, '4.1 km, one left across traffic', '', 700) + T(92, 22, '4.3 km, right turns only', 't', 900);
-    return { h: 214, svg: g, cap: 'The shorter way ends in an unprotected left. The router prices the turn and takes the longer one.' };
+    const X = m => 40 + m / 120 * 580, Y = v => 170 - v / 0.3 * 150;
+    const need = m => Math.min(0.2 * (0.5 + 1 / (1 + Math.exp(0.06 * (m - 30)))), 0.8);
+    let curve = '';
+    for (let m = 3; m <= 120; m += 1.5) curve += (curve ? ' L' : 'M') + X(m).toFixed(1) + ' ' + Y(need(m)).toFixed(1);
+    let g = P(`M40 170 H620`, 'f', 100) + P(`M40 20 V170`, 'f', 100);
+    for (const v of [0.1, 0.2, 0.3]) g += P(`M40 ${Y(v)} H620`, 'f', 150) + T(32, Y(v) + 4, `${v * 100}%`, '', 200, 'text-anchor="end"');
+    for (const m of [0, 30, 60, 90, 120]) g += T(X(m), 188, String(m), '', 200, 'text-anchor="middle"');
+    g += `<rect class="o fl" x="${X(0)}" y="20" width="${X(3) - X(0)}" height="150" fill-opacity=".4" style="--fd:300ms"/>`
+      + P(curve, 'k', 400) + T(620, 206, 'minutes left', '', 300, 'text-anchor="end"') + T(48, 12, 'share of what is left a faster way must save', '', 300)
+      + `<circle class="o af" cx="${X(15)}" cy="${Y(4 / 15)}" r="5" style="--fd:1300ms"/>` + T(X(15) + 12, Y(4 / 15) - 6, '4 min saved, 15 left: offered', 'at', 1350)
+      + `<circle class="o" cx="${X(60)}" cy="${Y(4 / 60)}" r="5" fill="none" stroke="var(--dim)" stroke-width="1.4" style="--fd:1500ms"/>` + T(X(60) + 12, Y(4 / 60) + 4, '4 min saved, 60 left: not offered', '', 1550);
+    return { h: 210, svg: g, cap: 'The default threshold. The same four minutes is worth a reroute with 15 minutes to go and not with 60. Nothing is offered in the shaded last three minutes.' };
   },
   coil: () => {
     const tree = ['myproject/', '├─ main.py', '├─ app/', '│  ├─ core.py', '│  └─ ui.py', '├─ assets/', '└─ requirements.txt'];
@@ -304,7 +306,8 @@ function render(e) {
     if (e.parts) html += `<dl class="parts">${e.parts.map(([k, v, id]) => `<dt class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(k)}</dt><dd class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(v)}</dd>`).join('')}</dl>`;
   }
   const meta = (e.meta || []).map(m => `<span class="dot">${esc(m)}</span>`).join('');
-  const go = e.sealed ? '' : `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
+  const site = e.site ? `<a class="go dot" href="${e.site}" target="_blank" rel="noopener">${esc(e.site.replace('https://', ''))}<span class="ar">→</span></a>` : '';
+  const go = e.sealed ? '' : site + `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
   html += `<div class="meta ln" style="height:auto;white-space:normal;${d()}">${meta}${go}</div>`;
   e.textEl.innerHTML = html;
   if (e.diagram) { drawDiagram(); hotNow = new Map(); litNow = new Set(); }

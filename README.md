@@ -15,13 +15,13 @@ Plain HTML, CSS and a canvas. No build step, no framework. Served by GitHub Page
 - `privacy/` what the site collects
 - `404.html` nothing at this hour
 - `status/` other status pages, kept for a host that can serve them
-- `fonts/` EB Garamond and IBM Plex, self-hosted
+- `fonts/` EB Garamond and IBM Plex, self-hosted, with their OFL licenses
 - `robots.txt`, `llms.txt`, `humans.txt`, `sitemap.xml`, `.well-known/security.txt`
 
 ## Local
 
 Serve the folder with any static server, for example `python3 -m http.server`, and open it. Add `?h=21.5` to a status page to preview any hour, or `?sky` to the day page to make the rare things in the sky frequent.
 
-## Rights
+## License
 
-The photographs, poems and music are all rights reserved. See `LICENSE`.
+The code is MIT. The photographs, poems, music, writing and marks are all rights reserved. Pretext and the fonts keep their own licenses. `LICENSE` lists which files are which.

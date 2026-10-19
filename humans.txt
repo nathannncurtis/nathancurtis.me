@@ -11,6 +11,6 @@
 /* SITE */
   One page. The sky is painted by hand each frame; the hour is yours.
   Built with HTML, CSS, a canvas and no framework.
-  Hosted on GitHub Pages behind Cloudflare.
+  Hosted on GitHub Pages.
   Fonts self-hosted. No cookies. Analytics count visits, not people.
   Photographs, poems and music by the one person above. All rights reserved.
