@@ -2,3 +2,5 @@
 node_modules/
 drafts/
 .claude/
+_site/
+.wrangler/

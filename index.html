@@ -456,7 +456,7 @@ const bats = Array.from({ length: 7 }, (_, i) => ({ x: 0.15 + Math.random() * 0.
 // (Cloudflare's rough location, rounded to ~10 km, asked of Open-Meteo; nothing kept).
 // It only holds near the visitor's present hour and fades as they scroll away from now.
 // ?wx=rain | drizzle | snow | storm | fog | haze | overcast | clear, optionally :0.6 for amount, forces it everywhere.
-const SKY_URL = 'https://sky.gab-rerank.workers.dev/'; // becomes nathancurtis.me/sky once the domain's DNS is on Cloudflare
+const SKY_URL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? 'https://nathancurtis.me/sky' : '/sky'; // same site in production; local dev borrows the live one
 let WX = null;
 const wxForce = (() => { const v = new URLSearchParams(location.search).get('wx'); if (!v) return null; const [sky, a] = v.split(':'); const amt = a ? +a : 0.8;
   const base = { sky, amount: amt, cloud: 0, haze: 0, wind: 12 };
