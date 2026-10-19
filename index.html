@@ -60,11 +60,11 @@
   @keyframes float { from { transform: translate(0, 0) rotate(var(--r0, -0.6deg)); } to { transform: translate(var(--fx, 6px), var(--fy, -10px)) rotate(var(--r1, 0.6deg)); } }
 
   .k-lights .pin { display: block; }
-  .k-lights .blob { position: absolute; cursor: zoom-in; will-change: transform; filter: url(#wob); }
+  .k-lights .blob { position: absolute; cursor: zoom-in; will-change: transform; transform-origin: 0 0; filter: url(#wob); }
   .k-lights .blob .sheet { width: 100%; height: 100%; clip-path: polygon(var(--p)); animation: morph var(--md, 30s) ease-in-out infinite alternate; animation-delay: var(--mo, 0s); overflow: hidden; }
   .k-lights .blob img { display: block; width: 100%; height: 100%; object-fit: cover; filter: url(#aur) brightness(var(--b, 1)); transform-origin: 50% 100%; animation: curtain var(--cd, 11s) ease-in-out infinite alternate; animation-delay: var(--co, 0s); }
   @keyframes curtain { from { transform: translateY(-2.5%) scale(1.08, 1.02) skewX(-1.5deg); } to { transform: translateY(2.5%) scale(1.12, 1.07) skewX(1.5deg); } }
-  .k-lights .blob .cap { position: absolute; left: 8%; bottom: -1.6em; font-size: 13px; opacity: 0; transition: opacity .5s; white-space: nowrap; }
+  .k-lights .blob .cap { position: absolute; left: 8%; bottom: -1.6em; font-size: 6.5px; opacity: 0; transition: opacity .5s; white-space: nowrap; }
   .k-lights .blob:hover .cap { opacity: .8; }
   .k-lights.idle .blob { filter: none; }
   .k-lights.idle .blob .sheet, .k-lights.idle .blob img { animation-play-state: paused; }
@@ -160,9 +160,9 @@
 </head>
 <body class="booting">
 <svg id="defs" aria-hidden="true">
-  <filter id="wob" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="2" seed="7"><animate attributeName="baseFrequency" values="0.009;0.015;0.009" dur="26s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/></feTurbulence><feDisplacementMap in="SourceGraphic" scale="22" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="wob" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence id="wobt" type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="11" xChannelSelector="R" yChannelSelector="G"/></filter>
   <filter id="wob2" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence id="wob2t" type="fractalNoise" baseFrequency="0.011" numOctaves="2" seed="7"/><feDisplacementMap id="wob2d" in="SourceGraphic" scale="22" xChannelSelector="R" yChannelSelector="G"/></filter>
-  <filter id="aur" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.03" numOctaves="2" seed="2"><animate attributeName="baseFrequency" values="0.004 0.03;0.007 0.022;0.004 0.03" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/></feTurbulence><feDisplacementMap in="SourceGraphic" scale="34" xChannelSelector="R" yChannelSelector="B"><animate attributeName="scale" values="26;40;26" dur="23s" repeatCount="indefinite" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/></feDisplacementMap></filter>
+  <filter id="aur" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence id="aurt" type="fractalNoise" baseFrequency="0.008 0.06" numOctaves="2" seed="2"/><feDisplacementMap in="SourceGraphic" scale="17" xChannelSelector="R" yChannelSelector="B"/></filter>
 </svg>
 <canvas id="sky"></canvas>
 <div id="chrome"><svg id="logo" aria-label="Nathan Curtis"></svg><span id="dial"><span id="clock">00:00</span><a id="work" href="/work">work</a></span></div>
@@ -183,6 +183,7 @@ const skyEl = document.getElementById('sky');
 const ctx = skyEl.getContext('2d');
 const mobile = matchMedia('(max-width: 760px)');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BREATHE = true; // slow drift of the aurora distortion (set via JS, throttled) instead of per-frame SMIL
 const vh = () => innerHeight;
 
 const ZEN = [[0,'#05060d'],[4,'#070a18'],[5.5,'#1c2240'],[6.5,'#6f7fa6'],[7.5,'#a9bbd6'],[10,'#bfd0e4'],[12,'#c4d6ea'],[15,'#bdcbdc'],[17.5,'#8f8ea8'],[18.6,'#4b3f63'],[19.6,'#1a1a33'],[21,'#0a0c1b'],[24,'#05060d']];
@@ -486,7 +487,7 @@ function layout() {
         const [fx, fy, fw] = spots[i % spots.length];
         const w = Math.round(Wv * fw), hgt = Math.round(w * (b.p.aspect === '4/3' ? 0.82 : 1.18));
         b.el.style.left = Math.round(Wv * fx) + 'px'; b.el.style.top = Math.round(H * fy) + 'px';
-        b.el.style.width = w + 'px'; b.el.style.height = hgt + 'px';
+        b.el.style.width = (w / 2) + 'px'; b.el.style.height = (hgt / 2) + 'px'; // rasterized at half size, scale(2) in motion()
         b.cx = Wv * fx + w / 2; b.cy = H * fy + hgt / 2;
       });
     } else if (it.kind === 'frieze') {
@@ -583,7 +584,14 @@ function motion(t) {
         const px = (pointer.x - b.cx) / innerWidth, py = (pointer.y - b.cy) / H;
         const tx = -px * 14 + Math.sin(t / 4000 + b.ph) * 10, ty = -py * 10 + Math.cos(t / 5200 + b.ph) * 8 + (p - 0.5) * -60 * (b.i % 2 ? 1 : 0.5);
         b.dx += (tx - b.dx) * 0.04; b.dy += (ty - b.dy) * 0.04;
-        b.el.style.transform = `translate(${b.dx.toFixed(1)}px, ${b.dy.toFixed(1)}px)`;
+        b.el.style.transform = `translate(${b.dx.toFixed(1)}px, ${b.dy.toFixed(1)}px) scale(2)`;
+      }
+      if (BREATHE && !reduced && t - (it.lastNoise || -1e9) >= 250) {
+        it.lastNoise = t;
+        const wob = 0.024 + 0.006 * Math.sin(t / 26000 * Math.PI * 2); // 0.018..0.030 (half-res element, so 2x the original 0.009..0.015)
+        const k = (1 + Math.sin(t / 18000 * Math.PI * 2)) / 2;
+        wobTurb.setAttribute('baseFrequency', wob.toFixed(4));
+        aurTurb.setAttribute('baseFrequency', `${(0.008 + 0.006 * k).toFixed(4)} ${(0.06 - 0.016 * k).toFixed(4)}`); // "0.008 0.06" .. "0.014 0.044"
       }
     } else if (it.kind === 'orbit') {
       // Three stray frames on a tilted ring, bottom-right to upper-left. Scrolling turns it once; time drifts it slowly.
@@ -653,8 +661,9 @@ function sourceShape(f) {
 let hiddenSrc = null;
 const wobT = document.getElementById('wob2t'), wobD = document.getElementById('wob2d');
 const srcWob = document.querySelector('#wob feTurbulence');
+const wobTurb = document.getElementById('wobt'), aurTurb = document.getElementById('aurt');
 function wobble(from, to, ms) {
-  wobT.setAttribute('baseFrequency', (+srcWob.baseFrequencyX.animVal || 0.011).toFixed(4));
+  wobT.setAttribute('baseFrequency', ((+srcWob.baseFrequencyX.animVal || 0.022) / 2).toFixed(4)); // #wob is tuned for half-res blobs; fly is full-size
   fly.style.filter = 'url(#wob2)';
   const t0 = performance.now();
   const step = now => {
