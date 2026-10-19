@@ -1,73 +1,27 @@
-# React + TypeScript + Vite
+# nathancurtis.me
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+One page, one day. Twenty-four hours of light where scrolling is time; you arrive at the hour it is where you are. Photographs, poems and music sit in the order of the day.
 
-Currently, two official plugins are available:
+Plain HTML, CSS and a canvas. No build step, no framework. Served by GitHub Pages.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Layout
 
-## React Compiler
+- `index.html` the day: sky, stages, lightbox, music player
+- `content.js` every photograph, poem and track the page shows
+- `sig-strokes.js` the signature, as strokes
+- `photos/web`, `photos/thumb` the photographs, 1600px JPEG and 600px WebP
+- `music/` the tracks and covers
+- `work/` the work page
+- `privacy/` what the site collects
+- `404.html` nothing at this hour
+- `status/` other status pages, kept for a host that can serve them
+- `fonts/` EB Garamond and IBM Plex, self-hosted
+- `robots.txt`, `llms.txt`, `humans.txt`, `sitemap.xml`, `.well-known/security.txt`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Local
 
-## Expanding the ESLint configuration
+Serve the folder with any static server, for example `python3 -m http.server`, and open it. Add `?h=21.5` to a status page to preview any hour, or `?sky` to the day page to make the rare things in the sky frequent.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Rights
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+The photographs, poems and music are all rights reserved. See `LICENSE`.
