@@ -402,6 +402,49 @@ const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 const stars = Array.from({ length: 190 }, () => [Math.random(), Math.random() * 0.8, Math.random(), Math.random() * 6.28]);
 const meteors = [];
 let nextMeteor = 2500, sat = { t: -1 }, nextSat = 15000;
+const skyDemo = new URLSearchParams(location.search).has('sky'); // ?sky makes the rare things frequent, for looking
+const cdist = (a, b) => Math.abs(((a - b + 12) % 24 + 24) % 24 - 12);   // hours apart on a 24h circle
+// Moon: the real phase tonight. 0 new, .5 full, 1 new again.
+const moonPhase = () => ((Date.now() / 864e5 - 10962.76) % 29.530588853 + 29.530588853) % 29.530588853 / 29.530588853; // days since the new moon of 2000-01-06 18:14 UTC
+function drawMoon(x, y, r, p, alpha, dark) {
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#e9ecf7'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  const k = Math.cos(p * Math.PI * 2), waxing = p < 0.5, rx = Math.max(0.6, r * Math.abs(k));
+  ctx.fillStyle = dark; ctx.beginPath();
+  if (waxing) { ctx.arc(x, y, r, Math.PI / 2, Math.PI * 1.5, false); ctx.ellipse(x, y, rx, r, 0, -Math.PI / 2, Math.PI / 2, k < 0); }
+  else { ctx.arc(x, y, r, -Math.PI / 2, Math.PI / 2, false); ctx.ellipse(x, y, rx, r, 0, Math.PI / 2, Math.PI * 1.5, k < 0); }
+  ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+}
+// Milky Way: a grainy band rendered once, drawn faintly through the deepest hours.
+const MW = document.createElement('canvas'); MW.width = 1024; MW.height = 300;
+{ const c = MW.getContext('2d'); let s = 4242; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const gauss = () => { let u = 0; for (let i = 0; i < 6; i++) u += rnd(); return (u - 3) / 1.5; };
+  for (let i = 0; i < 9000; i++) { const x = rnd() * 1024, y = 150 + gauss() * 42, a = 0.04 + rnd() * 0.16; c.fillStyle = `rgba(235,238,255,${a.toFixed(3)})`; c.fillRect(x, y, 1 + (rnd() < 0.08 ? 1 : 0), 1); }
+  c.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 14; i++) { const x = rnd() * 1024, y = 150 + gauss() * 20, g = c.createRadialGradient(x, y, 0, x, y, 40 + rnd() * 60); g.addColorStop(0, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, 1024, 300); }
+}
+// The two Dippers, as they really sit around Polaris: [right ascension h, declination °, size]
+const DIPPERS = [
+  [[11.06, 61.75, 2.1], [11.03, 56.38, 2.0], [11.90, 53.69, 1.9], [12.26, 57.03, 1.5], [12.90, 55.96, 2.1], [13.40, 54.93, 1.9], [13.79, 49.31, 2.1]],
+  [[2.53, 89.26, 2.0], [17.54, 86.59, 1.2], [16.77, 82.04, 1.3], [15.73, 77.79, 1.3], [16.29, 75.76, 1.1], [14.85, 74.16, 1.8], [15.35, 71.83, 1.5]],
+];
+const polar = (ra, dec, h, cx, cy, s) => { const a = (ra * 15 + h * 15 + 200) * Math.PI / 180, r = (90 - dec) * s; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; };
+// Plane, crow, bats, heat lightning
+let plane = { t: -1, trail: [] }, nextPlane = skyDemo ? 800 : 25000 + Math.random() * 60000;
+let crow = { state: 'gone', t0: 0 };
+const bats = Array.from({ length: 7 }, (_, i) => ({ x: 0.15 + Math.random() * 0.7, y: 0.06 + Math.random() * 0.2, vx: 0, vy: 0, ph: i * 1.3, nt: 0 }));
+let flash = { t: -1, x: 0 }, nextFlash = skyDemo ? 12000 : 180000 + Math.random() * 300000;
+function drawCrow(x, y, s, wing, alpha) {   // a silhouette; wing is the flap angle, 0 when perched
+  ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha; ctx.fillStyle = '#121014'; ctx.strokeStyle = '#121014'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, s * 0.42, -0.25, 0, 7); ctx.fill();                       // body
+  ctx.beginPath(); ctx.arc(s * 0.85, -s * 0.38, s * 0.32, 0, 7); ctx.fill();                              // head
+  ctx.beginPath(); ctx.moveTo(s * 1.1, -s * 0.42); ctx.lineTo(s * 1.55, -s * 0.3); ctx.lineTo(s * 1.1, -s * 0.22); ctx.fill(); // beak
+  ctx.beginPath(); ctx.moveTo(-s * 0.8, 0.1 * s); ctx.lineTo(-s * 1.5, s * 0.35); ctx.lineTo(-s * 1.35, -s * 0.05); ctx.fill(); // tail
+  if (wing !== 0) { ctx.lineWidth = s * 0.28; for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(d * s * 0.4, -s * 1.4 * wing, d * s * 1.5, -s * 1.5 * wing * 0.8 + s * 0.2); ctx.stroke(); } }
+  else { ctx.beginPath(); ctx.moveTo(-s * 0.6, -s * 0.15); ctx.quadraticCurveTo(s * 0.1, -s * 0.5, s * 0.55, -s * 0.2); ctx.lineWidth = s * 0.12; ctx.stroke(); } // folded wing line
+  ctx.restore();
+}
+
 let W = 0, Hh = 0, dpr = 1;
 function sizeSky() {
   dpr = Math.min(devicePixelRatio || 1, 1.5);
@@ -415,10 +458,32 @@ function drawSky(h, t, dt) {
   g.addColorStop(0, rgb(z)); g.addColorStop(0.72, rgb(mix(z, o, 0.55))); g.addColorStop(1, rgb(o));
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
   const sunA = Math.sin((h - 6) / 12 * Math.PI);
+  // Heat lightning: a silent flash low on the horizon, late evenings, rarely.
+  if (!reduced && h > 19.5 && h < 23.6) {
+    nextFlash -= dt;
+    if (flash.t < 0 && nextFlash < 0) { flash = { t: 0, x: W * (0.1 + Math.random() * 0.8) }; nextFlash = skyDemo ? 15000 + Math.random() * 15000 : 180000 + Math.random() * 300000; }
+    if (flash.t >= 0) {
+      flash.t += dt; const k = flash.t / 420, env = k < 1 ? Math.max(0, Math.sin(k * Math.PI)) * (k > 0.35 && k < 0.5 ? 0.35 : 1) : 0;
+      if (env > 0) { const fg = ctx.createRadialGradient(flash.x, Hh * 0.9, 0, flash.x, Hh * 0.9, W * 0.36); fg.addColorStop(0, `rgba(255,246,228,${(0.26 * env).toFixed(3)})`); fg.addColorStop(0.5, `rgba(255,236,210,${(0.08 * env).toFixed(3)})`); fg.addColorStop(1, 'rgba(255,236,210,0)'); ctx.fillStyle = fg; ctx.fillRect(0, 0, W, Hh); }
+      if (k >= 1) flash.t = -1;
+    }
+  }
   const sunX = ((h - 6) / 12) * W * 1.1 - W * 0.05;
   const sunY = Hh * 0.6 - sunA * Hh * 0.5;
   const night = clamp(lum(z) < 0.12 ? 1 : (0.25 - lum(z)) / 0.13, 0, 1);
   if (night > 0) {
+    const deep = clamp(1 - cdist(h, 1) / 3.6, 0, 1);   // the Milky Way only in the deepest hours, 21:30 to 04:30
+    if (deep > 0) { ctx.save(); ctx.globalAlpha = night * deep * 0.55; ctx.translate(W * 0.55, Hh * 0.36); ctx.rotate(-0.55 + (h - 1) * 0.045); const mw = W * 1.5; ctx.drawImage(MW, -mw / 2, -mw * 300 / 1024 / 2, mw, mw * 300 / 1024); ctx.restore(); }
+    { // Big and Little Dipper, turning around Polaris once a day
+      const cx = W * 0.2, cy = Hh * 0.3, sc = Math.min(W, Hh) * 0.0068;
+      ctx.fillStyle = '#f4f5ff'; ctx.strokeStyle = '#f4f5ff';
+      for (const con of DIPPERS) {
+        const pts = con.map(([ra, dec, sz]) => [...polar(ra, dec, h, cx, cy, sc), sz]);
+        ctx.globalAlpha = night * 0.04; ctx.lineWidth = 0.6; ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+        pts.forEach(([x, y, sz], i) => { const tw = 0.75 + 0.25 * Math.sin(t / 1100 + i * 2.1); ctx.globalAlpha = night * tw; ctx.beginPath(); ctx.arc(x, y, sz * 0.75, 0, 7); ctx.fill(); });
+      }
+      ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = '#eef0ff';
     for (const [sx, sy, b, ph] of stars) {
       const tw = 0.55 + 0.45 * Math.sin(t / 900 + ph);
@@ -475,8 +540,52 @@ function drawSky(h, t, dt) {
     const halo = ctx.createRadialGradient(mx, my, 0, mx, my, 60);
     halo.addColorStop(0, 'rgba(220,225,245,.18)'); halo.addColorStop(1, 'rgba(220,225,245,0)');
     ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(mx, my, 60, 0, 7); ctx.fill();
-    ctx.fillStyle = '#e9ecf7'; ctx.beginPath(); ctx.arc(mx, my, 13, 0, 7); ctx.fill();
-    ctx.fillStyle = rgb(z); ctx.globalAlpha = night * 0.95; ctx.beginPath(); ctx.arc(mx - 7, my - 3, 11.5, 0, 7); ctx.fill();
+    drawMoon(mx, my, 13, moonPhase(), night * 0.95, rgb(mix(z, [150, 155, 180], 0.16)));
+  }
+  // A plane, now and then: a speck with a contrail by day, a pair of lights by night.
+  const day = clamp((sunA + 0.02) / 0.1, 0, 1);
+  if (!reduced) {
+    nextPlane -= dt;
+    if (plane.t < 0 && nextPlane < 0) { plane = { t: 0, y: Hh * (0.05 + Math.random() * 0.12), dir: Math.random() < 0.5 ? 1 : -1, dur: 42000 + Math.random() * 20000, trail: plane.trail, last: 0 }; nextPlane = skyDemo ? 12000 : 90000 + Math.random() * 150000; }
+    if (plane.t >= 0) {
+      plane.t += dt; const k = plane.t / plane.dur, x = plane.dir > 0 ? k * (W + 60) - 30 : W + 30 - k * (W + 60), y = plane.y + Math.sin(k * 2.2) * 14;
+      if (day > 0 && plane.t - plane.last > 140) { plane.trail.push({ x, y, age: 0 }); plane.last = plane.t; }
+      if (day > 0) { ctx.globalAlpha = 0.55 * day; ctx.fillStyle = '#3a3b44'; ctx.fillRect(x - 3, y - 0.6, 6, 1.4); ctx.fillRect(x - 0.6, y - 2.2, 1.2, 4.4); ctx.globalAlpha = 1; }
+      if (day < 1) { const red = (t % 1000) < 500, strobe = (t % 1600) < 70; ctx.globalAlpha = (1 - day) * night; if (red) { ctx.fillStyle = '#ff5a4a'; ctx.fillRect(x - 3, y, 1.6, 1.6); } if (strobe) { ctx.fillStyle = '#fff'; ctx.fillRect(x + 2, y, 1.8, 1.8); } ctx.globalAlpha = 1; }
+      if (k > 1) plane.t = -1;
+    }
+    if (plane.trail.length) {
+      ctx.lineCap = 'round';
+      for (let i = 1; i < plane.trail.length; i++) { const a = plane.trail[i - 1], b = plane.trail[i]; b.age += dt; const f = 1 - b.age / 38000; if (f <= 0) continue; ctx.globalAlpha = 0.32 * f * f * day; ctx.lineWidth = 1 + (1 - f) * 7; ctx.strokeStyle = 'rgba(255,255,255,1)'; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+      ctx.globalAlpha = 1; plane.trail[0].age += dt;
+      while (plane.trail.length && plane.trail[0].age > 38000) plane.trail.shift();
+    }
+  }
+  // The crow of Burnt Orange: it comes in around six and settles on a wire in the corner.
+  const crowA = clamp((0.55 - Math.abs(h - 18.2)) / 0.15, 0, 1);
+  if (crowA > 0) {
+    const wire = x => Hh * (0.02 + 0.14 * (x - W * 0.74) / (W * 0.26)) + Math.sin((x - W * 0.74) / (W * 0.26) * Math.PI) * 9;
+    ctx.globalAlpha = crowA * 0.55; ctx.strokeStyle = '#1a1813'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(W * 0.74, -2); for (let x = W * 0.74; x <= W + 4; x += 12) ctx.lineTo(x, wire(x)); ctx.stroke(); ctx.globalAlpha = 1;
+    const px = W * 0.885, py = wire(px) - 1;
+    if (crow.state === 'gone') crow = { state: reduced ? 'perched' : 'flying', t0: t };
+    if (crow.state === 'flying') {
+      const k = clamp((t - crow.t0) / 7000, 0, 1), e = k * k * (3 - 2 * k);
+      const x = -40 + (px + 40) * e, y = Hh * 0.11 + (py - Hh * 0.11) * e + Math.sin(e * Math.PI) * Hh * -0.05;
+      const flap = Math.sin(t / 95) * (k < 0.78 ? 0.9 : 0.9 * (1 - (k - 0.78) / 0.22));
+      drawCrow(x, y, 9, 0.15 + flap, crowA);
+      if (k >= 1) crow.state = 'perched';
+    } else { const bob = Math.sin(t / 2600) > 0.96 ? 1.2 : 0; drawCrow(px, py - 5 + bob, 8.5, 0, crowA); }
+  } else crow.state = 'gone';
+  // Bats, for a little while after sunset.
+  const batA = clamp(1 - Math.abs(sunA + 0.14) / 0.12, 0, 1);
+  if (batA > 0 && !reduced) {
+    ctx.strokeStyle = '#141216'; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    for (const b of bats) {
+      b.nt -= dt; if (b.nt < 0) { b.vx = (Math.random() - 0.5) * 0.00022; b.vy = (Math.random() - 0.5) * 0.00018; b.nt = 160 + Math.random() * 400; }
+      b.x = clamp(b.x + b.vx * dt, 0.06, 0.94); b.y = clamp(b.y + b.vy * dt, 0.04, 0.3);
+      const x = b.x * W, y = b.y * Hh, f = Math.sin(t / 55 + b.ph) * 3.2, s = 4.5;
+      ctx.globalAlpha = batA * 0.75; ctx.beginPath(); ctx.moveTo(x - s, y - f); ctx.quadraticCurveTo(x - s / 2, y + 1, x, y); ctx.quadraticCurveTo(x + s / 2, y + 1, x + s, y - f); ctx.stroke();
+    }
     ctx.globalAlpha = 1;
   }
   return { z, o, sunA, night };
