@@ -12,7 +12,10 @@
     "run_worker_first": ["/sky"]
   },
   "workers_dev": true,
-  "observability": { "enabled": false }
-  // Added once the nathancurtis.me zone is active on Cloudflare:
-  // "routes": [{ "pattern": "nathancurtis.me", "custom_domain": true }, { "pattern": "www.nathancurtis.me", "custom_domain": true }]
+  "observability": { "enabled": false },
+  // www is redirected to the bare domain by a rule on the zone, before it reaches the Worker.
+  "routes": [
+    { "pattern": "nathancurtis.me", "custom_domain": true },
+    { "pattern": "www.nathancurtis.me", "custom_domain": true }
+  ]
 }
