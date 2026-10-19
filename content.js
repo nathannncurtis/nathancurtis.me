@@ -22,9 +22,12 @@ window.CONTENT = {
   P("IMG_0764", "citadel-mycenae", "Citadel of Mycenae", "2025", "16/9", "Greece"),
   P("IMG_0770", "mycenae-overlook", "Mycenae Overlook", "2025", "4/3", "Greece"),
   P("IMG_0828", "greek-colors", "Greek Colors", "2025", "3/4", "Greece"),
+  P("IMG_0858", "garden-cat", "Garden Cat", "2025", "3/4", "Greece"),
   P("IMG_0884", "the-tholos", "The Tholos, Delphi", "2025", "3/4", "Greece"),
   P("IMG_0889", "olympia-spring", "Olympia in Spring", "2025", "4/3", "Greece"),
+  P("IMG_1047", "diros-shore", "Diros Shore", "2025", "4/3", "Greece"),
   P("IMG_1051", "stone-lane", "Stone Lane", "2025", "3/4", "Greece"),
+  P("IMG_1053", "taverna-dog", "Taverna Dog", "2025", "3/4", "Greece"),
   P("IMG_0766", "cloud-country", "Cloud Country", "2025", "4/3", "Greece"),
   P("IMG_0947", "hermes", "Hermes of Praxiteles", "2025", "3/4", "Greece"),
   P("IMG_0956", "draped-marble", "Draped Marble", "2025", "3/4", "Greece"),
@@ -40,7 +43,6 @@ window.CONTENT = {
   P("IMG_8205", "throne-in-the-woods", "Throne in the Woods", "2023", "3/4", "Stray Frames"),
   P("IMG_9208", "campground-fireworks", "Campground Fireworks", "2024", "3/4", "Stray Frames"),
   P("IMG_7369", "alcatraz-steps", "Alcatraz Steps", "2022", "3/4", "Stray Frames"),
-  P("IMG_7370", "the-rock", "The Rock", "2022", "4/3", "Stray Frames"),
 ],
   verse: [
   {
