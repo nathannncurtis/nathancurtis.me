@@ -25,7 +25,7 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir _site
-          rsync -a --exclude=.git --exclude=.github --exclude=.gitignore --exclude=README.md --exclude=_site ./ _site/
+          rsync -a --exclude=.git --exclude=.github --exclude=.gitignore --exclude=README.md --exclude=worker --exclude=_site ./ _site/
 
       - name: Check the site
         run: |

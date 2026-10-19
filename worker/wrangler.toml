@@ -1,0 +1,9 @@
+name = "sky"
+main = "sky.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+# Once nathancurtis.me's DNS is on Cloudflare, serve it from the site's own domain:
+# routes = [{ pattern = "nathancurtis.me/sky", zone_name = "nathancurtis.me" }]
+
+[observability]
+enabled = false

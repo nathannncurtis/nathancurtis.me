@@ -174,7 +174,7 @@
 <div id="pg" aria-hidden="true">p.<span class="n"><span id="pgn">1</span></span>of <span id="pgt"></span></div>
 <footer>
   <a class="home" href="/" aria-label="nathancurtis.me"><svg id="sig"></svg></a>
-  <span class="links"><a href="/">nathancurtis.me</a><a href="https://github.com/nathannncurtis">GitHub</a></span>
+  <span class="links"><a href="/">nathancurtis.me</a><a href="https://github.com/nathannncurtis">GitHub</a><a href="/privacy">Privacy</a></span>
 </footer>
 <script src="/sig-strokes.js"></script>
 <script type="module">
@@ -200,11 +200,11 @@ const entries = [
       ['Anti-corruption layer', 'One library that turns the vendor’s model into yours, so nothing else ever sees it.', 'acl'],
       ['Read models', 'Screen-shaped documents, versioned in commit order and delivered only as whole versions.', 'rm'],
       ['Writes', 'Through the vendor’s API, judged by what comes back: confirmed, state reached, or undetermined.', 'api'] ] },
-  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', site: 'https://dokkit.dev', meta: ['Elixir, Phoenix, Go', '372 commits', 'Still being built'],
+  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', site: 'https://dokkit.dev', meta: ['Elixir, Phoenix, Go', '416 commits', 'Still being built'],
     lead: 'One place that watches everything I run and tells me what needs my attention.',
     paras: [ 'The first screen is what needs a look now, which is wider than what is down. The program on each machine opens no port and reports what is on it. Discovery writes a proposal, and nothing is watched until a person accepts it. It suggests changes to its own rules and never makes them.' ] },
   { sealed: true, fig: true, kind: 'Batch OCR and compression', name: 13, paras: [180, 240], meta: ['Python, Rust'] },
-  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', site: 'https://steddi.io', meta: ['Swift, SwiftUI, MapKit', '1,150 commits', 'Still being built'],
+  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', site: 'https://steddi.io', meta: ['Swift, SwiftUI, MapKit', '1,153 commits', 'Still being built'],
     lead: 'For people who already know their routes. Rerouted only when it actually matters.',
     paras: [ 'Drive a route your way once and it is saved. Turn-by-turn is its own engine, with no navigation SDK. A faster way is offered only when it saves enough of what is left of the drive: a larger share on a short drive, a smaller one on a long drive, never less than a minute and a half, and never in the last three minutes.' ] },
   { sealed: true, kind: 'On-prem document AI', name: 10, paras: [260], meta: ['Python, vLLM'] },
@@ -305,7 +305,9 @@ function render(e) {
     if (e.fig) html += figure(e, e.figN);
     if (e.parts) html += `<dl class="parts">${e.parts.map(([k, v, id]) => `<dt class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(k)}</dt><dd class="ln" data-part="${id}" style="height:auto;white-space:normal;${d()}">${esc(v)}</dd>`).join('')}</dl>`;
   }
-  const meta = (e.meta || []).map(m => `<span class="dot">${esc(m)}</span>`).join('');
+  const repo = !e.sealed && /github\.com\/([^/]+\/[^/]+)/.exec(e.url || '')?.[1];
+  const live = m => !repo ? '' : /\bcommits$/.test(m) ? ` data-live="commits" data-repo="${repo}"` : /^v\d/.test(m) ? ` data-live="version" data-repo="${repo}"` : '';
+  const meta = (e.meta || []).map(m => `<span class="dot"${live(m)}>${esc(m)}</span>`).join('');
   const site = e.site ? `<a class="go dot" href="${e.site}" target="_blank" rel="noopener">${esc(e.site.replace('https://', ''))}<span class="ar">→</span></a>` : '';
   const go = e.sealed ? '' : site + `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
   html += `<div class="meta ln" style="height:auto;white-space:normal;${d()}">${meta}${go}</div>`;
@@ -474,6 +476,19 @@ document.addEventListener('copy', e => {
   e.clipboardData.setData('text/plain', text); e.preventDefault();
 });
 
+// Commit counts and versions, read from GitHub when the page opens. The numbers written
+// into the page are the fallback; anything that fails to load just keeps them.
+(() => {
+  const spans = [...document.querySelectorAll('[data-live]')]; if (!spans.length) return;
+  const nf = new Intl.NumberFormat('en-US'), memo = {};
+  const get = (u, f) => (memo[u] ||= fetch('https://api.github.com/' + u, { headers: { Accept: 'application/vnd.github+json' } }).then(r => r.ok ? f(r) : null).catch(() => null));
+  for (const s of spans) {
+    const repo = s.dataset.repo;
+    if (s.dataset.live === 'commits') get(`repos/${repo}/commits?per_page=1`, r => { const m = /[?&]page=(\d+)>; rel="last"/.exec(r.headers.get('Link') || ''); return m ? +m[1] : null; })
+      .then(n => { if (n) s.textContent = `${nf.format(n)} commits`; });
+    else get(`repos/${repo}/releases/latest`, r => r.json()).then(d => { const tag = d?.tag_name; if (tag && /^v?\d/.test(tag)) s.textContent = s.textContent.replace(/^v[\w.-]+/, tag.startsWith('v') ? tag : 'v' + tag); });
+  }
+})();
 console.log('%cThe redacted text isn\u2019t in this page. There\u2019s nothing to find.', 'font: 12px "IBM Plex Mono", monospace; color: #a8743f;');
 
 if (fine) {
