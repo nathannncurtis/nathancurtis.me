@@ -173,8 +173,8 @@
 <div id="cur"><span>+</span></div>
 <div id="pg" aria-hidden="true">p.<span class="n"><span id="pgn">1</span></span>of <span id="pgt"></span></div>
 <footer>
-  <a class="home" href="/" aria-label="nathancurtis.to"><svg id="sig"></svg></a>
-  <span class="links"><a href="/">nathancurtis.to</a><a href="https://github.com/nathannncurtis">GitHub</a></span>
+  <a class="home" href="/" aria-label="nathancurtis.me"><svg id="sig"></svg></a>
+  <span class="links"><a href="/">nathancurtis.me</a><a href="https://github.com/nathannncurtis">GitHub</a></span>
 </footer>
 <script src="/sig-strokes.js"></script>
 <script type="module">
@@ -188,7 +188,7 @@ const FILL = 'the quick work of a long afternoon was set against the slower reco
 const filler = (n, seed) => { const w = FILL.split(' '); let out = [], i = seed % w.length; while (out.join(' ').length < n) { out.push(w[i % w.length]); i += 3 + (seed % 4); } return out.join(' '); };
 
 const entries = [
-  { name: 'ORCA', mark: true, kind: 'An architectural pattern', url: 'https://github.com/nathannncurtis/orca', go: 'Read the draft on GitHub', meta: ['Rust, PostgreSQL in one implementation', 'Draft'],
+  { name: 'ORCA', mark: true, kind: 'An architectural pattern', url: 'https://github.com/nathannncurtis/orca', go: 'Read it on GitHub', meta: ['Rust, PostgreSQL in one implementation', 'Still being written'],
     lead: 'Operational store, Read models, Change capture, Anti-corruption layer. A pattern for building a fast, independent platform on top of a system you do not own and cannot change.',
     paras: [
       'Many organizations run their core business on a vendor’s system: a database you can read, but whose schema, release cycle and API belong to someone else. Everything else grows around it. Tools query it directly, each keeps its own drifting copy, the vendor’s quirks leak into every one of them, and the API is too slow and too incomplete to build on.',
@@ -200,11 +200,11 @@ const entries = [
       ['Anti-corruption layer', 'One library that turns the vendor’s model into yours, so nothing else ever sees it.', 'acl'],
       ['Read models', 'Screen-shaped documents, versioned in commit order and delivered only as whole versions.', 'rm'],
       ['Writes', 'Through the vendor’s API, judged by what comes back: confirmed, state reached, or undetermined.', 'api'] ] },
-  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', meta: ['Elixir, Phoenix, Go', '372 commits'],
+  { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', meta: ['Elixir, Phoenix, Go', '372 commits', 'Still being built'],
     lead: 'One place that watches everything I run and tells me what needs my attention.',
     paras: [ 'The first screen is what needs a look now, which is wider than what is down. The program on each machine opens no port and reports what is on it. Discovery writes a proposal, and nothing is watched until a person accepts it. It suggests changes to its own rules and never makes them.' ] },
   { sealed: true, fig: true, kind: 'Batch OCR and compression', name: 13, paras: [180, 240], meta: ['Python, Rust'] },
-  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://steddi.io', go: 'steddi.io', web: true, meta: ['Swift, SwiftUI, MapKit', '1,150 commits'],
+  { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', meta: ['Swift, SwiftUI, MapKit', '1,150 commits', 'Still being built'],
     lead: 'For people who already know their routes. Rerouted only when it actually matters.',
     paras: [ 'Two engines behind one seam. MapKit is the default. A router written from scratch searches an OpenStreetMap road graph with a cost model that prices every turn and learns a driver’s own weights from their drives. When it is on it is tried first and falls back on any miss, so a drive is never stranded.' ] },
   { sealed: true, kind: 'On-prem document AI', name: 10, paras: [260], meta: ['Python, vLLM'] },
@@ -213,7 +213,7 @@ const entries = [
     lead: 'Directory in, executable out.',
     paras: [ 'Existing tools for turning Python into an executable are complicated: hidden imports, missing DLLs, spec files, hook scripts. Coil takes a project folder and returns an .exe with no configuration. The executable is a native launcher, not a renamed interpreter, so the arguments you pass are the arguments your program gets.' ] },
   { sealed: true, fig: true, kind: 'DICOM aggregation', name: 11, paras: [200], meta: ['Rust'] },
-  { name: 'mdview', fig: 'mdview', kind: 'Markdown viewer', url: 'https://github.com/nathannncurtis/mdview-zig', go: 'GitHub', meta: ['Zig', 'v0.4.0'],
+  { name: 'mdview', fig: 'mdview', kind: 'Markdown viewer', url: 'https://github.com/nathannncurtis/mdview-zig', go: 'GitHub', meta: ['Zig', 'v0.4.0', 'Still being built'],
     lead: 'A native markdown viewer, about 285 KB, with no webview and no runtime.',
     paras: [ 'Markdown is headings, paragraphs, code and lists. It does not need a browser engine. Each platform is drawn with its own text engine, and the program starts before you notice.' ] },
   { sealed: true, kind: 'Fleet agent', name: 9, paras: [170, 210], meta: ['Rust, Elixir'] },
