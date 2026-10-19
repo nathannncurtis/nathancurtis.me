@@ -7,7 +7,8 @@
 // rounds it to about a 10 km square, asks Open-Meteo what the sky is doing there,
 // and answers with the weather only. It stores nothing about the visitor: no address,
 // no coordinates, no log of its own. Open-Meteo only ever sees this Worker asking
-// about a square of map.
+// about a square of map. The ten-minute cache is keyed on a hash of the square, salted
+// with a secret and the date, so even Cloudflare's own request logs never show a place.
 
 const ALLOW = [/^https:\/\/nathancurtis\.me$/, /^https:\/\/www\.nathancurtis\.me$/, /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/];
 const TTL = 600; // seconds a square's weather is reused
@@ -35,14 +36,21 @@ function cors(req) {
   return ALLOW.some(r => r.test(o)) ? { 'Access-Control-Allow-Origin': o, 'Vary': 'Origin' } : {};
 }
 
-async function weather(req, ctx) {
+async function cacheKey(sq, env) {
+  const day = new Date().toISOString().slice(0, 10);
+  const bytes = new TextEncoder().encode(`${env.SKY_SALT || ''}|${day}|${sq}`);
+  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+  return new Request(`https://sky.cache/${hash}`);
+}
+
+async function weather(req, env, ctx) {
   const h = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors(req) };
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...h, 'Access-Control-Allow-Methods': 'GET' } });
   const cf = req.cf || {};
   const lat = parseFloat(cf.latitude), lon = parseFloat(cf.longitude);
   if (!isFinite(lat) || !isFinite(lon)) return new Response(JSON.stringify({ sky: 'unknown' }), { headers: h });
   const sq = `${(Math.round(lat * 10) / 10).toFixed(1)},${(Math.round(lon * 10) / 10).toFixed(1)}`; // ~10 km
-  const key = new Request(`https://sky.cache/${sq}`);
+  const key = await cacheKey(sq, env);
   const cache = caches.default;
   let hit = await cache.match(key);
   if (!hit) {
@@ -60,7 +68,7 @@ async function weather(req, ctx) {
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    if (url.pathname === '/sky') return weather(req, ctx);
+    if (url.pathname === '/sky') return weather(req, env, ctx);
     return env.ASSETS.fetch(req);
   },
 };

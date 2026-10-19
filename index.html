@@ -723,12 +723,8 @@ const hourAtY = y => {
   const [yl, hl] = keys[keys.length - 1];
   return hl + (y - yl) / vh();
 };
-const landY = h => {
-  const real = items.filter(it => it.el !== topClone && it.el !== botClone);
-  let best = real[0];
-  for (const it of real) if (it.hour <= h) best = it;
-  return best.el.offsetTop;
-};
+// Arrive exactly at the hour it is: the clock, read at the middle of the screen, says now.
+const landY = h => Math.max(0, yAtHour(h) - innerHeight * 0.5);
 const yAtHour = h => {
   if (!keys.length) return 0;
   if (h <= keys[0][1]) return keys[0][0];
