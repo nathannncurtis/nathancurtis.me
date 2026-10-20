@@ -7,7 +7,7 @@ This is a personal site, not a product. Everything on it was made by Nathan Curt
 ## What's here
 
 - `/` the day: photographs, poems and music, arranged by hour
-- `/work` what I do for a living: ORCA (the paper is at https://orcapattern.org), four projects, a paper
+- `/work` what I do for a living: ORCA (the paper is at https://orcapattern.org), the projects I can show, and hints of the ones I can't
 - `/privacy` what the site collects, which is almost nothing
 - `/404` nothing at this hour
 
