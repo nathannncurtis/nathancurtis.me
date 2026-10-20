@@ -104,6 +104,11 @@
   .shown .fig .q, .shown .fig .o { opacity: 1; transition: opacity .6s cubic-bezier(.2,0,.1,1) var(--fd, 300ms); }
   .fig.x .nx { color: color-mix(in srgb, var(--dim) 60%, transparent); }
   @media (prefers-reduced-motion: reduce) { .fig .s:not(.q) { stroke-dashoffset: 0; } .fig .q, .fig .o { opacity: 1; } }
+  .ls { margin: 0; color: color-mix(in srgb, var(--ink) 70%, var(--bg)); }
+  .ls .nx { display: inline; height: auto; font: 14px/27px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0; padding: 0 1px; color: var(--dim); }
+  .reveal .ls { opacity: 0; transform: translateY(8px); }
+  .shown .ls { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.2,0,.1,1), transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
+  @media (prefers-reduced-motion: reduce) { .reveal .ls { opacity: 1; transform: none; } }
   .diagram { font: 12px/18px ui-monospace, "Cascadia Mono", Consolas, Menlo, "DejaVu Sans Mono", monospace; color: color-mix(in srgb, var(--dim) 80%, var(--bg)); width: max-content; }
   .diagram .r { display: block; height: 18px; white-space: pre; }
   .diagram .zone { color: var(--dim); }
@@ -203,21 +208,21 @@ const entries = [
   { name: 'Dokkit', fig: 'dokkit', kind: 'Monitoring', url: 'https://github.com/nathannncurtis/dokkit', go: 'GitHub', site: 'https://dokkit.dev', meta: ['Elixir, Phoenix, Go', '416 commits', 'Still being built'],
     lead: 'One place that watches everything I run and tells me what needs my attention.',
     paras: [ 'The first screen is what needs a look now, which is wider than what is down. The program on each machine opens no port and reports what is on it. Discovery writes a proposal, and nothing is watched until a person accepts it. It suggests changes to its own rules and never makes them.' ] },
-  { sealed: true, fig: true, kind: 'Batch OCR and compression', name: 13, paras: [180, 240], meta: ['Python, Rust'] },
+  { sealed: true, fig: true, kind: 'Glyph-atlas compression', name: 12, meta: ['Python'], line: 'Scanned pages rebuilt from {3} {6} {3} of {6}, {7} {2} {5} so one letter can never become another. {4} smaller across {3} million pages.' },
   { name: 'steddi', fig: 'steddi', kind: 'iOS navigation', url: 'https://github.com/nathannncurtis/steddi', go: 'GitHub', site: 'https://steddi.io', meta: ['Swift, SwiftUI, MapKit', '1,153 commits', 'Still being built'],
     lead: 'For people who already know their routes. Rerouted only when it actually matters.',
     paras: [ 'Drive a route your way once and it is saved. Turn-by-turn is its own engine, with no navigation SDK. A faster way is offered only when it saves enough of what is left of the drive: a larger share on a short drive, a smaller one on a long drive, never less than a minute and a half, and never in the last three minutes.' ] },
-  { sealed: true, kind: 'On-prem document AI', name: 10, paras: [260], meta: ['Python, vLLM'] },
-  { sealed: true, kind: 'Field app', name: 8, paras: [150, 120], meta: ['Kotlin, Swift'] },
+  { sealed: true, kind: 'Legal records production', name: 10, meta: ['Python, Rust, TypeScript, C#'], line: 'Records requests assembled end to end on top of {5} closed programs, each {6} {4} {7}. {7} pages in {5} {5}.' },
+  { sealed: true, kind: 'Precedent-driven judging', name: 9, meta: ['Python, vLLM'], line: 'A small model takes the easy pages. A {5} {6} {5} rules on the rest, shown the {4} {7} {7} and the {7} {5}.' },
   { name: 'coil', fig: 'coil', kind: 'Python compiler', url: 'https://github.com/nathannncurtis/coil', go: 'GitHub', meta: ['Python, C', 'v0.3.1 on PyPI'],
     lead: 'Directory in, executable out.',
     paras: [ 'Existing tools for turning Python into an executable are complicated: hidden imports, missing DLLs, spec files, hook scripts. Coil takes a project folder and returns an .exe with no configuration. The executable is a native launcher, not a renamed interpreter, so the arguments you pass are the arguments your program gets.' ] },
-  { sealed: true, fig: true, kind: 'DICOM aggregation', name: 11, paras: [200], meta: ['Rust'] },
+  { sealed: true, fig: true, kind: 'Medical disc decryption', name: 8, meta: ['Go'], line: 'Five {6} disc formats turned into {5} {5}, including a {3} {6} rebuilt from {4} {4} {8}.' },
   { name: 'mdview', fig: 'mdview', kind: 'Markdown viewer', url: 'https://github.com/nathannncurtis/mdview-zig', go: 'GitHub', meta: ['Zig', 'v0.4.0', 'Still being built'],
     lead: 'A native markdown viewer, about 285 KB, with no webview and no runtime.',
     paras: [ 'Markdown is headings, paragraphs, code and lists. It does not need a browser engine. Each platform is drawn with its own text engine, and the program starts before you notice.' ] },
-  { sealed: true, kind: 'Fleet agent', name: 9, paras: [170, 210], meta: ['Rust, Elixir'] },
-  { sealed: true, kind: 'Operations dashboards', name: 12, paras: [140], meta: ['Elixir'] },
+  { sealed: true, kind: 'Closed label formats', name: 13, meta: ['Python, C#, Rust'], line: 'The same move three times: three closed {4} {5} programs, their files written {8} without ever {7} {4}. And the {5} that {5} the {5}, driven over a protocol worked out from {3} {6} {7}.' },
+  { sealed: true, kind: 'Admin-free software delivery', name: 9, meta: ['Rust, Elixir'], line: 'Installs and updates apps on {9} machines with no admin rights. The agent refuses anything outside a {5} {9}, even when its own {6} asks.' },
 ];
 
 const NX = '15px "IBM Plex Mono"';
@@ -283,7 +288,6 @@ entries.forEach(e => { if (e.fig) e.figN = ++figN; });
 entries.forEach((e, i) => {
   const a = document.createElement('article');
   a.className = 'e reveal' + (e.sealed ? ' sealed' : '');
-  if (e.sealed) e.text = e.paras.map((n, j) => filler(n, i * 7 + j * 13));
   a.innerHTML = `<div class="side">${e.sealed ? `<span class="name-x" style="--d:0ms">${esc(noise(e.name))}</span>` : `<h2><a href="${e.url}" target="_blank" rel="noopener">${esc(e.name)}</a>${e.mark ? `<picture class="mark" aria-hidden="true"><source media="(prefers-color-scheme: dark)" srcset="orca-mark-dark.svg"><img src="orca-mark-light.svg" alt=""></picture>` : ''}</h2>`}<div class="kind">${esc(e.kind)}</div></div><div class="text"></div>`;
   list.appendChild(a);
   e.el = a; e.textEl = a.querySelector('.text');
@@ -294,7 +298,7 @@ function render(e) {
   let n = 0, html = '';
   const d = () => `--d:${Math.min(n++, 14) * 45 + 80}ms`;
   if (e.sealed) {
-    for (const t of e.text) html += `<div class="para">${lines(t, w, NX).map(l => `<span class="nx" style="${d()}">${esc(noise(l.text.replace(/\s+$/, '')))}</span>`).join('')}</div>`;
+    html += `<div class="para"><p class="ls" style="${d()}">${esc(e.line).replace(/\{(\d+)\}/g, (_, c) => `<span class="nx">${esc(noise(+c))}</span>`)}</p></div>`;
     if (e.fig) html += figure(e, e.figN);
   } else {
     html += `<div class="para lead">${lines(e.lead, w, LEAD).map(l => `<span class="ln" style="font-weight:500;${d()}">${esc(l.text)}</span>`).join('')}</div>`;
@@ -466,13 +470,13 @@ document.addEventListener('copy', e => {
   const touched = within(r.startContainer) || within(r.endContainer) || box.querySelector('.nx, .name-x');
   if (!touched) return;
   if (!box.querySelector('.nx, .name-x, .para, .side, .e')) { e.clipboardData.setData('text/plain', '[redacted]'); e.preventDefault(); return; }
-  box.querySelectorAll('.e.sealed .text .para, .text .para:has(.nx)').forEach(x => x.replaceWith('[redacted]\n'));
+  box.querySelectorAll('.e.sealed .text .para:not(:has(.ls)), .text .para:has(.nx):not(:has(.ls))').forEach(x => x.replaceWith('[redacted]\n'));
   box.querySelectorAll('.nx, .name-x').forEach(x => x.replaceWith('[redacted]'));
   box.querySelectorAll('.para .ln').forEach(x => x.append(' '));
   box.querySelectorAll('.meta .dot').forEach(x => { if (x.nextElementSibling) x.append(' · '); });
   box.querySelectorAll('.parts dt').forEach(x => x.append(': '));
   box.querySelectorAll('.para, .side, .meta, h2, .kind, .parts dd').forEach(x => x.append('\n'));
-  const text = box.textContent.replace(/(\[redacted\]\s*)+/g, '[redacted]\n').replace(/ {2,}/g, ' ').replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  const text = box.textContent.replace(/(\[redacted\]\s*)+/g, m => /\n/.test(m) ? '[redacted]\n' : '[redacted] ').replace(/\[redacted\] ([.,:;])/g, '[redacted]$1').replace(/ {2,}/g, ' ').replace(/ +\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   e.clipboardData.setData('text/plain', text); e.preventDefault();
 });
 
