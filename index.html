@@ -180,6 +180,20 @@
     .mu { --cov: 8em; }
     .k-lights .blob { filter: none; }
   }
+  .mu .bar::before { content: ""; position: absolute; left: 0; right: 0; top: -14px; bottom: -14px; }
+  .k-lights h3, .k-frieze h3, .k-turn h3 { top: max(7vh, 58px); }
+  #light { touch-action: pan-x pinch-zoom; overscroll-behavior: contain; }
+  @media (max-width: 760px) {
+    #chrome::before { content: ""; position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--sky-z) 35%, rgba(0, 0, 0, 0)); }
+    #clock { padding: 10px 0 8px 16px; margin: -10px 0 -8px -16px; }
+    .mu li { padding: .75em 0; }
+    .mu .ctl { gap: 0; }
+    .mu .ctl span { padding: .75em 1.4em .75em 0; }
+  }
+  @media (max-height: 500px) {
+    #rail { display: none; }
+    #chrome::before { content: ""; position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--sky-z) 35%, rgba(0, 0, 0, 0)); }
+  }
   @media (prefers-reduced-motion: reduce) { .st .fl, .k-lights .blob .sheet { animation: none !important; } }
 </style>
 </head>
@@ -210,6 +224,8 @@ const mobile = matchMedia('(max-width: 760px)');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BREATHE = true; // slow drift of the aurora distortion (set via JS, throttled) instead of per-frame SMIL
 const vh = () => innerHeight;
+const phone = mobile.matches, LAZY = phone ? ' loading="lazy"' : '';
+const small = p => phone ? p.thumb : p.src; // a phone shows these well under 600px wide
 
 const ZEN = [[0,'#05060d'],[4,'#070a18'],[5.5,'#1c2240'],[6.5,'#6f7fa6'],[7.5,'#a9bbd6'],[10,'#bfd0e4'],[12,'#c4d6ea'],[15,'#bdcbdc'],[17.5,'#8f8ea8'],[18.6,'#4b3f63'],[19.6,'#1a1a33'],[21,'#0a0c1b'],[24,'#05060d']];
 const HOR = [[0,'#0a0c18'],[4,'#0d1022'],[5.5,'#5a3f4a'],[6.3,'#d9955f'],[7.5,'#e6cfae'],[10,'#e4e9ec'],[12,'#eceff0'],[15,'#e8ddcb'],[17.5,'#dfa672'],[18.6,'#a85a45'],[19.6,'#4c3550'],[21,'#141628'],[24,'#0a0c18']];
@@ -269,8 +285,8 @@ for (const [kind, key, hour] of ORDER) {
     const f = document.createElement('figure');
     f.className = kind + ' hold';
     f.style.setProperty('--ar', p.aspect);
-    if (kind === 'win') f.innerHTML = `<div class="frame sh"><img src="${p.src}" alt="${p.title}" class="ex"></div>${capHtml(p)}`;
-    else f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh">${capHtml(p)}`;
+    if (kind === 'win') f.innerHTML = `<div class="frame sh"><img src="${p.src}" alt="${p.title}" class="ex"${LAZY}></div>${capHtml(p)}`;
+    else f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh"${LAZY}>${capHtml(p)}`;
     if (kind !== 'win') addPhoto(p, f);
     stage(hour, kind, f, kind === 'win' ? (key === 'red-rock-road' ? 170 : 260) : 170).p = p;
   } else if (kind === 'st') {
@@ -315,7 +331,7 @@ for (const [kind, key, hour] of ORDER) {
       b.className = 'blob';
       const a = blobPoly(i + 1, 0), bb = blobPoly(i + 1, 1), c = blobPoly(i + 1, 2);
       styleEl.textContent += `@keyframes morph${i} { 0%, 100% { clip-path: polygon(${a}); } 36% { clip-path: polygon(${bb}); } 70% { clip-path: polygon(${c}); } }\n`;
-      b.innerHTML = `<div class="sheet" style="--p:${a}; animation-name: morph${i}"><img src="${p.src}" alt="${p.title}"></div>${capHtml(p)}`;
+      b.innerHTML = `<div class="sheet" style="--p:${a}; animation-name: morph${i}"><img src="${small(p)}" alt="${p.title}"></div>${capHtml(p)}`;
       b.style.setProperty('--md', (28 + i * 5) + 's'); b.style.setProperty('--mo', (-i * 7) + 's');
       b.style.setProperty('--cd', (9 + i * 2) + 's'); b.style.setProperty('--co', (-i * 3) + 's');
       addPhoto(p, b);
@@ -331,7 +347,7 @@ for (const [kind, key, hour] of ORDER) {
       const p = byId[id];
       const f = document.createElement('figure');
       f.style.setProperty('--ar', p.aspect);
-      f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh" loading="lazy">${capHtml(p)}`;
+      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex sh" loading="lazy">${capHtml(p)}`;
       addPhoto(p, f);
       ring.appendChild(f);
       return { el: f, p, i };
@@ -342,7 +358,7 @@ for (const [kind, key, hour] of ORDER) {
       const p = byId[id];
       const f = document.createElement('figure');
       f.style.setProperty('--ar', p.aspect);
-      f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh">${capHtml(p)}`;
+      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex sh">${capHtml(p)}`;
       addPhoto(p, f);
       it.pin.appendChild(f);
       return { el: f, p, i };
@@ -358,7 +374,7 @@ for (const [kind, key, hour] of ORDER) {
       const [aw, ah] = p.aspect.split('/').map(Number);
       if (aw > ah) f.classList.add('land');
       f.style.setProperty('--ih', aw > ah ? '78%' : '100%');
-      f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex" loading="lazy">${capHtml(p)}`;
+      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex" loading="lazy">${capHtml(p)}`;
       addPhoto(p, f);
       friezeTrack.appendChild(f);
     });
@@ -402,7 +418,7 @@ function wirePlayer(s, m) {
   lis.forEach(l => l.onclick = () => play(+l.dataset.i));
   ctl[0].onclick = () => { if (current && current.s === s && audio.src) { audio.play(); s.classList.add('playing'); ctl[0].classList.add('on'); ctl[1].classList.remove('on'); } else play(0); };
   ctl[1].onclick = () => { if (current && current.s === s) { audio.pause(); s.classList.remove('playing'); ctl[1].classList.add('on'); ctl[0].classList.remove('on'); } };
-  bar.onclick = e => { if (current && current.s === s && audio.duration) audio.currentTime = audio.duration * (e.offsetX / bar.offsetWidth); };
+  bar.onclick = e => { if (current && current.s === s && audio.duration) audio.currentTime = audio.duration * clamp((e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth, 0, 1); };
 }
 
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
@@ -711,7 +727,7 @@ function layout() {
     el.style.width = w + 'px';
     const left = [0.06, 0.78, 0.1, 0.74][n % 4], top = [0.14, 0.58, 0.62, 0.12][n % 4];
     el.style.left = Math.round((m ? [0.04, 0.7, 0.04, 0.7][n % 4] : left) * Wv) + 'px';
-    el.style.top = Math.round((m ? [0.07, 0.8, 0.8, 0.07][n % 4] : top) * vh()) + 'px';
+    el.style.top = Math.round((m ? [0.13, 0.78, 0.78, 0.13][n % 4] : top) * vh()) + 'px';
   }
   keys = items.map(it => { const r = it.el.getBoundingClientRect(); return [r.top + scrollY + r.height * 0.5, it.hour]; }).sort((a, b) => a[0] - b[0]);
   lastHour = -1;
@@ -906,6 +922,7 @@ function openLight(i) {
   lightBusy = true;
   clearAnims(fly, light, cloud, pic);
   lightI = i;
+  if (!history.state?.light) history.pushState({ light: 1 }, '');
   const { p, f } = photos[i];
   const sh = sourceShape(f);
   const from = sh.el.getBoundingClientRect();
@@ -934,6 +951,7 @@ function openLight(i) {
     light.classList.add('shown');
     lightBusy = false;
     full.decode().then(() => { if (lightI === i) pic.style.backgroundImage = `url("${fullSrc}")`; }).catch(() => {});
+    if (closeAsked) { closeAsked = false; closeLight(); }
   };
   if (sh.clip !== 'none' && !mobile.matches) wobble(22, 0, 950); else fly.style.filter = '';
 }
@@ -974,8 +992,18 @@ function stepLight(d) {
     inn.onfinish = () => { lightBusy = false; const full = new Image(); full.src = p.src; full.decode().then(() => { if (lightI === n) pic.style.backgroundImage = `url("${p.src}")`; }).catch(() => {}); };
   };
 }
-light.onclick = e => { if (e.target.classList.contains('k')) stepLight(e.target.classList.contains('l') ? -1 : 1); else closeLight(); };
-addEventListener('keydown', e => { if (e.key === 'Escape') closeLight(); if (e.key === 'ArrowRight') stepLight(1); if (e.key === 'ArrowLeft') stepLight(-1); });
+let closeAsked = false, touch0 = null, swiped = false;
+const dismiss = () => { if (history.state?.light) history.back(); else closeLight(); };
+addEventListener('popstate', () => { if (lightI < 0) return; if (lightBusy) closeAsked = true; else closeLight(); });
+light.onclick = e => { if (swiped) { swiped = false; return; } if (lightBusy) return; if (e.target.classList.contains('k')) stepLight(e.target.classList.contains('l') ? -1 : 1); else dismiss(); };
+light.addEventListener('touchstart', e => { swiped = false; touch0 = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null; }, { passive: true });
+light.addEventListener('touchmove', e => { if (e.touches.length === 1) e.preventDefault(); }, { passive: false }); // iOS scrolls the page under a fixed layer otherwise
+light.addEventListener('touchend', e => {
+  if (!touch0) return;
+  const t = e.changedTouches[0], dx = t.clientX - touch0[0], dy = t.clientY - touch0[1]; touch0 = null;
+  if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) { swiped = true; stepLight(dx < 0 ? 1 : -1); }
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') dismiss(); if (e.key === 'ArrowRight') stepLight(1); if (e.key === 'ArrowLeft') stepLight(-1); });
 clock.onclick = () => scrollTo({ top: yAtHour(nowHour()) - innerHeight * 0.5, behavior: reduced ? 'auto' : 'smooth' });
 
 const boot = document.getElementById('boot');
@@ -1009,7 +1037,7 @@ function flyLogo() {
   a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; };
 }
 function preloadAll() {
-  const urls = [...new Set([...document.images].map(i => i.currentSrc || i.src).filter(Boolean))];
+  const urls = [...new Set([...document.images].filter(i => !phone || i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
   return Promise.all(urls.map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u; im.decode?.().then(r, r); })));
 }
 function start() {
@@ -1017,6 +1045,7 @@ function start() {
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
   paint(0, 0, 16);
+  if (phone) for (const it of items) if (cdist(it.hour, target) < 2) it.el.querySelectorAll('img[loading=lazy]').forEach(i => { i.loading = 'eager'; });
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
   const sweepStart = new Promise(r => setTimeout(r, q.has('fast') ? 50 : drawn * 0.72));
@@ -1044,6 +1073,7 @@ function start() {
   });
 }
 history.scrollRestoration = 'manual';
+if (history.state?.light) history.replaceState(null, '');
 addEventListener('resize', () => { sizeSky(); layout(); });
 addEventListener('load', () => { layout(); });
 start();
