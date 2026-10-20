@@ -199,7 +199,7 @@ const FILL = 'the quick work of a long afternoon was set against the slower reco
 const filler = (n, seed) => { const w = FILL.split(' '); let out = [], i = seed % w.length; while (out.join(' ').length < n) { out.push(w[i % w.length]); i += 3 + (seed % 4); } return out.join(' '); };
 
 const entries = [
-  { name: 'ORCA', mark: true, kind: 'An architectural pattern', url: 'https://github.com/nathannncurtis/orca', go: 'Read it on GitHub', meta: ['Rust, PostgreSQL in one implementation', 'Still being written'],
+  { name: 'ORCA', mark: true, kind: 'An architectural pattern', url: 'https://github.com/nathannncurtis/orca', go: 'GitHub', site: 'https://orcapattern.org', meta: ['Rust, PostgreSQL in one implementation', 'v1.0'],
     lead: 'Operational store, Read models, Change capture, Anti-corruption layer. A pattern for building a fast, independent platform on top of a system you do not own and cannot change.',
     paras: [
       'Many organizations run their core business on a vendor’s system: a database you can read, but whose schema, release cycle and API belong to someone else. Everything else grows around it. Tools query it directly, each keeps its own drifting copy, the vendor’s quirks leak into every one of them, and the API is too slow and too incomplete to build on.',
