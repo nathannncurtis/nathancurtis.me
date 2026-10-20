@@ -65,10 +65,26 @@ async function weather(req, env, ctx) {
   return new Response(await hit.text(), { headers: h });
 }
 
+// Static assets answer every request with the whole file. Phones need byte ranges for audio:
+// iOS will not play media without them, and no browser can seek a track that lacks them.
+async function ranged(req, env) {
+  const res = await env.ASSETS.fetch(req.url, { method: req.method });
+  const h = new Headers(res.headers); h.set('Accept-Ranges', 'bytes');
+  const m = /^bytes=(\d*)-(\d*)$/.exec((req.headers.get('Range') || '').trim());
+  if (!m || res.status !== 200 || req.method !== 'GET' || (m[1] === '' && m[2] === '')) return new Response(res.body, { status: res.status, headers: h });
+  const buf = await res.arrayBuffer(), n = buf.byteLength;
+  const start = m[1] === '' ? Math.max(0, n - +m[2]) : +m[1];
+  const end = m[1] === '' || m[2] === '' ? n - 1 : Math.min(+m[2], n - 1);
+  if (start >= n || start > end) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${n}`, 'Accept-Ranges': 'bytes' } });
+  h.set('Content-Range', `bytes ${start}-${end}/${n}`); h.set('Content-Length', String(end - start + 1));
+  return new Response(buf.slice(start, end + 1), { status: 206, headers: h });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === '/sky') return weather(req, env, ctx);
+    if (url.pathname.startsWith('/music/')) return ranged(req, env);
     return env.ASSETS.fetch(req);
   },
 };

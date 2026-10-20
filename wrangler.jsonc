@@ -9,7 +9,7 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash",
-    "run_worker_first": ["/sky"]
+    "run_worker_first": ["/sky", "/music/*"]
   },
   "workers_dev": true,
   "observability": { "enabled": false },
