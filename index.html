@@ -28,7 +28,7 @@
 <style>
   :root { --ink: #1a1813; --ink-rgb: 26, 24, 19; --sky: #0a0c18; --sky-z: #05060d; }
   * { box-sizing: border-box; }
-  html { background: var(--sky); }
+  html { background: var(--sky); overflow-anchor: none; }
   body { margin: 0; font: 17px/1.5 "EB Garamond", Georgia, serif; color: var(--ink); background: transparent; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
   body.booting { overflow: hidden; }
   a { color: inherit; text-decoration: none; }
@@ -181,7 +181,7 @@
     .k-lights .blob { filter: none; }
   }
   .mu .bar::before { content: ""; position: absolute; left: 0; right: 0; top: -14px; bottom: -14px; }
-  .k-lights h3, .k-frieze h3, .k-turn h3 { top: max(7vh, 58px); }
+  .k-lights h3, .k-frieze h3, .k-turn h3 { top: 60px; }
   #light { touch-action: pan-x pinch-zoom; overscroll-behavior: contain; }
   @media (max-width: 760px) {
     #chrome::before { content: ""; position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--sky-z) 35%, rgba(0, 0, 0, 0)); }
@@ -223,7 +223,11 @@ const ctx = skyEl.getContext('2d');
 const mobile = matchMedia('(max-width: 760px)');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BREATHE = true; // slow drift of the aurora distortion (set via JS, throttled) instead of per-frame SMIL
-const vh = () => innerHeight;
+// The hour and everything scrolling drives are a function of scrollY alone. They are measured
+// against the window as it was when the page opened (or last changed width), never the live one,
+// so toolbars collapsing, a keyboard or a window resize can never move the time or the zoom.
+let SH = innerHeight, SW = innerWidth;
+const vh = () => SH;
 const phone = mobile.matches, LAZY = phone ? ' loading="lazy"' : '';
 const small = p => phone ? p.thumb : p.src; // a phone shows these well under 600px wide
 
@@ -540,8 +544,8 @@ function drawCrow(x, y, s, wing, alpha) {   // a silhouette; wing is the flap an
 let W = 0, Hh = 0, dpr = 1;
 function sizeSky() {
   dpr = Math.min(devicePixelRatio || 1, 1.5);
-  W = innerWidth; Hh = innerHeight;
-  skyEl.width = Math.round(W * dpr); skyEl.height = Math.round(Hh * dpr);
+  W = innerWidth; Hh = SH; // the sky is drawn to the fixed height too; anything taller shows the horizon colour behind it
+  skyEl.width = Math.round(W * dpr); skyEl.height = Math.round(innerHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 function drawSky(h, t, dt) {
@@ -685,13 +689,11 @@ function drawSky(h, t, dt) {
 }
 
 let keys = [];
-// The page's length is fixed in pixels from the height it opened at, so an in-app browser whose
-// toolbars collapse mid-scroll (Instagram, Facebook) grows the window without moving the hour.
-let SH = innerHeight, SW = innerWidth;
 function layout() {
   const m = mobile.matches, Wv = innerWidth;
   for (const it of items) {
     if (it.span) it.el.style.height = Math.round(it.span * SH / 100) + 'px';
+    if (it.pin) it.pin.style.height = SH + 'px';
     else if (it.flow) it.el.style.paddingTop = it.el.style.paddingBottom = Math.round(SH * (m ? 0.10 : 0.14)) + 'px';
   }
   for (const it of items) {
@@ -747,7 +749,7 @@ const hourAtY = y => {
   return hl + (y - yl) / vh();
 };
 // Arrive exactly at the hour it is: the clock, read at the middle of the screen, says now.
-const landY = h => Math.max(0, yAtHour(h) - innerHeight * 0.5);
+const landY = h => Math.max(0, yAtHour(h) - SH * 0.5);
 const yAtHour = h => {
   if (!keys.length) return 0;
   if (h <= keys[0][1]) return keys[0][0];
@@ -758,7 +760,7 @@ const yAtHour = h => {
 for (let h = 0; h < 24; h++) {
   const b = document.createElement('b');
   if (h % 3 === 0) b.dataset.l = String(h).padStart(2, '0');
-  b.onclick = () => scrollTo({ top: yAtHour(h + 0.3) - innerHeight * 0.5, behavior: reduced ? 'auto' : 'smooth' });
+  b.onclick = () => scrollTo({ top: yAtHour(h + 0.3) - SH * 0.5, behavior: reduced ? 'auto' : 'smooth' });
   rail.appendChild(b);
 }
 const ticks = [...rail.children];
@@ -797,7 +799,7 @@ function motion(t) {
   for (const it of items) {
     if (it.flow) continue;
     const r = it.el.getBoundingClientRect();
-    const off = r.bottom < -100 || r.top > H + 100;
+    const off = r.bottom < -100 || r.top > innerHeight + 100;
     if (it.kind === 'lights') it.el.classList.toggle('idle', off);
     if (off) continue;
     const p = clamp(-r.top / (r.height - H), 0, 1);
@@ -858,7 +860,7 @@ function motion(t) {
     if (it.pin) for (const el of it.pin.querySelectorAll('.st')) el.style.transform = `translateY(${((p - 0.5) * -90 * (+el.dataset.n % 2 ? 1 : -0.7)).toFixed(1)}px)`;
   }
 }
-let lastFrame = 0, prevY = 0;
+let lastFrame = 0, prevY = 0, shownHour = null;
 function loop() {
   const L = loopLen(), y = scrollY;
   if (y > botClone.offsetTop + 8 && y > prevY) { scrollTo({ top: y - L, behavior: 'instant' }); lastHour = -1; }
@@ -869,7 +871,7 @@ function frame(t) {
   const dt = lastFrame ? Math.min(100, t - lastFrame) : 16; lastFrame = t;
   if (!booting) {
     if (lightI < 0) loop();
-    const h = hourAtY(scrollY + innerHeight * 0.5);
+    const h = shownHour = hourAtY(scrollY + SH * 0.5);
     const night = lum(at(ZEN, h)) < 0.2;
     const twilight = Math.abs(Math.sin((h - 6) / 12 * Math.PI) + 0.08) < 0.3;
     if (Math.abs(h - lastHour) > 0.0015 || night || twilight || wxStrength(h) > 0) { lastHour = h; paint(h, t, dt); }
@@ -1011,7 +1013,7 @@ light.addEventListener('touchend', e => {
   if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) { swiped = true; stepLight(dx < 0 ? 1 : -1); }
 });
 addEventListener('keydown', e => { if (e.key === 'Escape') dismiss(); if (e.key === 'ArrowRight') stepLight(1); if (e.key === 'ArrowLeft') stepLight(-1); });
-clock.onclick = () => scrollTo({ top: yAtHour(nowHour()) - innerHeight * 0.5, behavior: reduced ? 'auto' : 'smooth' });
+clock.onclick = () => scrollTo({ top: yAtHour(nowHour()) - SH * 0.5, behavior: reduced ? 'auto' : 'smooth' });
 
 const boot = document.getElementById('boot');
 const sigSvg = document.getElementById('sig');
@@ -1082,10 +1084,12 @@ function start() {
 history.scrollRestoration = 'manual';
 if (history.state?.light) history.replaceState(null, '');
 addEventListener('resize', () => {
-  const turned = innerWidth !== SW, h = turned && !booting ? hourAtY(scrollY + innerHeight * 0.5) : null;
-  if (turned) { SW = innerWidth; SH = innerHeight; }
-  sizeSky(); layout();
-  if (h !== null && lightI < 0) scrollTo({ top: yAtHour(h) - innerHeight * 0.5, behavior: 'instant' }); // a rotation keeps the reader's hour
+  sizeSky(); lastHour = -1;
+  if (innerWidth === SW) return; // height alone changes nothing on the page
+  const h = booting ? null : shownHour; // the hour on screen before the browser reflowed anything
+  SW = innerWidth; SH = innerHeight;
+  layout();
+  if (h !== null) scrollTo({ top: yAtHour(h) - SH * 0.5, behavior: 'instant' }); // a new width re-lays the day out at the same hour
 });
 addEventListener('load', () => { layout(); });
 start();
