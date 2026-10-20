@@ -685,8 +685,15 @@ function drawSky(h, t, dt) {
 }
 
 let keys = [];
+// The page's length is fixed in pixels from the height it opened at, so an in-app browser whose
+// toolbars collapse mid-scroll (Instagram, Facebook) grows the window without moving the hour.
+let SH = innerHeight, SW = innerWidth;
 function layout() {
   const m = mobile.matches, Wv = innerWidth;
+  for (const it of items) {
+    if (it.span) it.el.style.height = Math.round(it.span * SH / 100) + 'px';
+    else if (it.flow) it.el.style.paddingTop = it.el.style.paddingBottom = Math.round(SH * (m ? 0.10 : 0.14)) + 'px';
+  }
   for (const it of items) {
     if (it.kind === 'ph') {
       const [aw, ah] = it.p.aspect.split('/').map(Number);
@@ -1074,7 +1081,12 @@ function start() {
 }
 history.scrollRestoration = 'manual';
 if (history.state?.light) history.replaceState(null, '');
-addEventListener('resize', () => { sizeSky(); layout(); });
+addEventListener('resize', () => {
+  const turned = innerWidth !== SW, h = turned && !booting ? hourAtY(scrollY + innerHeight * 0.5) : null;
+  if (turned) { SW = innerWidth; SH = innerHeight; }
+  sizeSky(); layout();
+  if (h !== null && lightI < 0) scrollTo({ top: yAtHour(h) - innerHeight * 0.5, behavior: 'instant' }); // a rotation keeps the reader's hour
+});
 addEventListener('load', () => { layout(); });
 start();
 frame(0);
