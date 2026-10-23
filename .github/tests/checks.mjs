@@ -4,9 +4,6 @@ import { OUTSIDE } from './pages.mjs';
 
 // Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
 const ACCEPTED_AXE = [
-  // The day page colours its text from the sky at the visitor's hour (music titles and controls, poem headings and
-  // notes, the Greece heading), and at some hours they fall under 4.5:1. Follow-up: a contrast floor in the sky code.
-  { rule: 'color-contrast', path: '/', target: /./ },
   // /work: the muted ink (detail lines, separator dots, the live version, the kind labels) is under 4.5:1.
   // Follow-up: lift the muted ink.
   { rule: 'color-contrast', path: '/work', target: /./ },
