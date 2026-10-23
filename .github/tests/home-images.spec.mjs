@@ -12,7 +12,7 @@ for (const width of [390, 1440]) for (const deviceScaleFactor of [1, 2]) {
     const bytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((s, r) => s + r.encodedBodySize, 0));
     expect(bytes).toBeLessThan(width < 760 ? 6_000_000 : 8_000_000);
     for (const image of await photos.all()) {
-      await image.scrollIntoViewIfNeeded();
+      await image.evaluate(i => i.scrollIntoView({ block: 'center', behavior: 'instant' }));
       await expect.poll(() => image.evaluate(i => i.complete && i.naturalWidth > 0)).toBe(true);
     }
     await page.evaluate(() => openLight(0));
