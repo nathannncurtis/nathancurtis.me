@@ -17,8 +17,10 @@
       rules.set(declarations, name);
     }
     let tag = before + after;
+    const closed = /\/\s*$/.test(tag);
+    if (closed) tag = tag.replace(/\/\s*$/, '');
     if (/\bclass="[^"]*"/.test(tag)) tag = tag.replace(/\bclass="([^"]*)"/, (_, existing) => `class="${existing} ${name}"`);
     else tag += ` class="${name}"`;
-    return `<${tag}>`;
+    return `<${tag}${closed ? '/' : ''}>`;
   });
 })();

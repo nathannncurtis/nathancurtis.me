@@ -1,13 +1,13 @@
 import { chromium, firefox, webkit } from '@playwright/test';
+import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-const base = process.env.SECURITY_BASE || 'http://127.0.0.1:8791';
-const policy = readFileSync('_headers', 'utf8').split('\n').find(l => l.includes('Content-Security-Policy:')).split('Content-Security-Policy:')[1].trim();
+const policy = readFileSync(new URL('../../_headers', import.meta.url), 'utf8').split('\n').find(l => l.includes('Content-Security-Policy:')).split('Content-Security-Policy:')[1].trim();
 assert(!policy.includes('unsafe-inline'));
 const paths = ['/', '/work/', '/privacy/', '/404.html', '/status/200.html', '/status/403.html', '/status/410.html', '/status/500.html', '/status/503.html'];
-for (const engine of [chromium, firefox, webkit].filter(e => !process.env.SECURITY_ENGINE || e.name() === process.env.SECURITY_ENGINE)) {
-  const browser = await engine.launch();
+export async function verifySecurity(browser, base) {
+  const engine = browser.browserType();
   for (const path of paths) {
     const page = await browser.newPage();
     const errors = [], violations = [];
@@ -48,6 +48,14 @@ for (const engine of [chromium, firefox, webkit].filter(e => !process.env.SECURI
   await page.route(base + '/sri-negative', r => r.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><title>SRI</title></head><body><script src="/sri-probe.js" integrity="${integrity}"></script></body></html>` }));
   await page.goto(base + '/sri-negative');
   assert.equal(await page.evaluate(() => window.integrityProbe), undefined, 'tampered bytes blocked by SRI');
-  await browser.close();
+  await page.close();
   console.log(`${engine.name()}: all documents enforce CSP; inline script/style and tampered SRI blocked`);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  for (const engine of [chromium, firefox, webkit].filter(e => !process.env.SECURITY_ENGINE || e.name() === process.env.SECURITY_ENGINE)) {
+    const browser = await engine.launch();
+    try { await verifySecurity(browser, process.env.SECURITY_BASE || 'http://127.0.0.1:8791'); }
+    finally { await browser.close(); }
+  }
 }
