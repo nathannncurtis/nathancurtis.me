@@ -10,7 +10,7 @@ const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
   await page.route('**/work{,/}', route => route.fulfill({ contentType: 'text/html', body: empty }));
-  await page.route(/api.github.com|cloudflareinsights.com/, route => route.abort());
+  await page.route(/api\.github\.com|(?:static\.)?cloudflareinsights\.com/, route => route.abort());
   await page.goto(BASE + '/work/');
   await page.locator('.meta').first().waitFor();
   const html = (await page.locator('#list').innerHTML()).replaceAll('e reveal', 'e shown');
