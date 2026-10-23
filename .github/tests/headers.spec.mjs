@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 import { BASE } from './pages.mjs';
 
 const EVERY = {
+  'cross-origin-opener-policy': /^same-origin$/,
+  'cross-origin-embedder-policy': /^require-corp$/,
+  'cross-origin-resource-policy': /^same-origin$/,
   'strict-transport-security': /max-age=31536000; includeSubDomains/,
   'x-content-type-options': /^nosniff$/,
   'referrer-policy': /^strict-origin-when-cross-origin$/,
@@ -11,7 +14,7 @@ const EVERY = {
 };
 const LONG = { 'cache-control': /max-age=31536000, immutable/ };
 
-for (const [path, extra] of [['/', {}], ['/work', {}], ['/no-such-page', {}], ['/fonts/fonts.css', LONG], ['/photos/thumb/cathedral.webp', LONG], ['/music/her.mp3', LONG]]) {
+for (const [path, extra] of [['/', {}], ['/work', {}], ['/no-such-page', {}], ['/sky', {}], ['/fonts/fonts.css', LONG], ['/photos/thumb/cathedral.webp', LONG], ['/music/her.mp3', LONG]]) {
   test(`headers on ${path}`, async ({ request }) => {
     const res = await request.get(BASE + path, { maxRedirects: 0 });
     const h = res.headers();
@@ -32,3 +35,11 @@ test('a song answers byte ranges through the Worker', async ({ request }) => {
   expect(res.headers()['content-range']).toMatch(/^bytes 0-99\/\d+$/);
   expect((await res.body()).length).toBe(100);
 });
+
+for (const path of ['/no-such-page', '/404.html']) {
+  test(`missing page is not indexable: ${path}`, async ({ request }) => {
+    const res = await request.get(BASE + path);
+    expect(res.status()).toBe(path === '/404.html' ? 200 : 404);
+    expect(await res.text()).toMatch(/<meta\s+name="robots"\s+content="noindex"\s*\/?>/i);
+  });
+}

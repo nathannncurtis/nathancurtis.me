@@ -9,7 +9,7 @@ export const PAGES = [
 
 // A name that isn't localhost, so the day page calls this Worker's /sky instead of borrowing the live one.
 // CI maps it to 127.0.0.1 in the hosts file; BASE overrides it anywhere else.
-export const BASE = process.env.BASE ?? 'http://site.test:8787';
+export const BASE = process.env.BASE ?? 'http://site.localhost:8787';
 
 // Outside calls whose failure in CI says nothing about the site.
 export const OUTSIDE = /cloudflareinsights\.com|api\.github\.com|api\.open-meteo\.com/;

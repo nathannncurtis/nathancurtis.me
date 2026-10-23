@@ -1,0 +1,1 @@
+#clock { animation: stutter 2.4s steps(1) infinite; } @keyframes stutter { 0%,78%,100% { opacity: 1; } 80% { opacity: .2; } 84% { opacity: 1; } 88% { opacity: .35; } 90% { opacity: 1; } }

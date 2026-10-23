@@ -1,5 +1,5 @@
 name: serve
-description: Node and the test tools, the site assembled, site.test pointing here, and (unless start is false) wrangler dev on :8787.
+description: Node and the test tools, the site assembled, site.localhost pointing here, and (unless start is false) wrangler dev on :8787.
 inputs:
   start:
     description: Start wrangler dev and wait for it.
@@ -20,18 +20,18 @@ runs:
       shell: bash
       run: ./.github/scripts/assemble.sh
     # A name that isn't localhost, so the day page calls this Worker's /sky instead of borrowing the live one.
-    - name: site.test is this machine
+    - name: site.localhost is this machine
       if: runner.os != 'Windows'
       shell: bash
-      run: echo '127.0.0.1 site.test' | sudo tee -a /etc/hosts
-    - name: site.test is this machine
+      run: echo '127.0.0.1 site.localhost' | sudo tee -a /etc/hosts
+    - name: site.localhost is this machine
       if: runner.os == 'Windows'
       shell: pwsh
-      run: Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value '127.0.0.1 site.test'
+      run: Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value '127.0.0.1 site.localhost'
     - name: wrangler dev
       if: inputs.start == 'true'
       shell: bash
       run: |
         nohup node .github/tests/node_modules/wrangler/bin/wrangler.js dev --port 8787 --ip 127.0.0.1 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
-        for i in $(seq 90); do curl -sf -o /dev/null http://site.test:8787/ && exit 0; sleep 1; done
+        for i in $(seq 90); do curl -sf -o /dev/null http://site.localhost:8787/ && exit 0; sleep 1; done
         cat "$RUNNER_TEMP/wrangler.log"; exit 1

@@ -15,11 +15,6 @@ const FLOORS = {
 };
 // Known findings on the site, accepted until the follow-up named beside each lands. Keys: path, or path@form.
 const ACCEPTED = {
-  // /work: the reveal animation grows each entry's height as it opens (layout shift ~0.95), which also costs
-  // performance; Lighthouse reads the lines mid-fade, so contrast fails there while axe passes them after it.
-  '/work': ['performance', 'cumulative-layout-shift', 'color-contrast'],
-  // The day page on a desktop loads every full-size photograph up front (~14.5 MB); phones get the thumbnails.
-  '/@desktop': ['total'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
@@ -38,7 +33,7 @@ const RUNS = Number(process.env.LH_RUNS ?? 3);
 
 const out = new URL('../../lighthouse/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
-const chrome = await launcher.launch({ chromePath: chromium.executablePath(), chromeFlags: ['--headless=new', '--no-sandbox', '--host-resolver-rules=MAP site.test 127.0.0.1'] });
+const chrome = await launcher.launch({ chromePath: chromium.executablePath(), chromeFlags: ['--headless=new', '--no-sandbox', '--host-resolver-rules=MAP site.localhost 127.0.0.1'] });
 const median = xs => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 const rows = [];
 let bad = 0;
