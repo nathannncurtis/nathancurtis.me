@@ -63,12 +63,12 @@ for rel, url in PAGES.items():
     img = h.meta.get("og:image", "")
     if img.startswith(DOMAIN) and not (SITE / img[len(DOMAIN):].lstrip("/")).is_file(): err(f"{rel}: og:image {img} isn't in the site")
 
-# Every HTML file: icons, the analytics beacon, and links that go somewhere
+# Every HTML file: icons, no mutable manual beacon, and links that go somewhere
 for page in sorted(SITE.rglob("*.html")):
     rel = page.relative_to(SITE)
     h = parse(page)
     if h.links.get("icon") is None or h.links.get("apple-touch-icon") is None: err(f"{rel}: needs a favicon and an apple-touch-icon")
-    if "static.cloudflareinsights.com/beacon.min.js" not in page.read_text(): err(f"{rel}: no Cloudflare Web Analytics beacon")
+    if "static.cloudflareinsights.com/beacon" in page.read_text(): err(f"{rel}: mutable manual beacon; use gated managed SRI injection")
     for ref in h.refs:
         if not resolves(ref, rel): err(f"{rel}: broken link {ref}")
 
