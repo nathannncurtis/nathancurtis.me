@@ -18,8 +18,6 @@ const ACCEPTED = {
   // /work: the reveal animation grows each entry's height as it opens (layout shift ~0.95), which also costs
   // performance; Lighthouse reads the lines mid-fade, so contrast fails there while axe passes them after it.
   '/work': ['performance', 'cumulative-layout-shift', 'color-contrast'],
-  // The day page on a desktop loads every full-size photograph up front (~14.5 MB); phones get the thumbnails.
-  '/@desktop': ['total'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
