@@ -37,7 +37,8 @@ jobs:
         run: npx -y wrangler@4.151.2 deploy --dry-run --outdir "$RUNNER_TEMP/worker"
 
   browser:
-    runs-on: ubuntu-latest
+    # Playwright's Chromium builds stop at 24.04; ubuntu-latest has moved past it.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
