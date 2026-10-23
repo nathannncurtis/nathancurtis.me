@@ -4,10 +4,19 @@ import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { PAGES } from './pages.mjs';
 import { visit } from './checks.mjs';
+import { androidVersion } from './android-version.mjs';
+const provenance = await androidVersion();
 
 const base = 'http://site.localhost:8787';
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
 const context = browser.contexts()[0];
+const identity = await context.newPage();
+const ua = await identity.evaluate(() => navigator.userAgent);
+console.log('Android browser user agent:', ua);
+if (!/Android/.test(ua)) throw Error('The CDP target is not Android');
+const cdpVersion = await browser.version();
+if (cdpVersion.split('.')[0] !== provenance.version.split('.')[0]) throw Error(`CDP browser ${cdpVersion} differs from installed ${provenance.version}`);
+await identity.close();
 mkdirSync('../../test-results/android', { recursive: true });
 // Straight after boot the emulator's network can still be coming up (ERR_ADDRESS_UNREACHABLE); wait for the host.
 const probe = await context.newPage();
@@ -28,4 +37,4 @@ for (const p of PAGES) {
 }
 await browser.close();
 if (bad) process.exit(1);
-console.log(`android chrome ok (${PAGES.length} pages)`);
+console.log(`android ${provenance.product} ${provenance.version} ok (${PAGES.length} pages)`);
