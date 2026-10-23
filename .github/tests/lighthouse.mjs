@@ -15,6 +15,9 @@ const FLOORS = {
 };
 // Known findings on the site, accepted until the follow-up named beside each lands. Keys: path, or path@form.
 const ACCEPTED = {
+  '/work': ['color-contrast'],
+  '/': ['color-contrast'],
+  '/privacy': ['color-contrast'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {

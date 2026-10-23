@@ -1,10 +1,7 @@
-
-  main > div { max-width: 34em; padding: 1em; color: var(--readable-ink); background: var(--sky); border-radius: 4px; }
-  #dial { padding: .25em .5em; color: var(--readable-ink); background: var(--sky); border-radius: 4px; }
-  #clock i, #work, .go { opacity: 1; }
+  main > div { max-width: 34em; }
   h1 { font-size: clamp(26px, 3.2vw, 36px); }
-  p { opacity: 1; margin-bottom: 1em; }
-  .small { font-size: 15px; font-style: italic; opacity: 1; }
+  p { opacity: .85; margin-bottom: 1em; }
+  .small { font-size: 15px; font-style: italic; opacity: .55; }
   body { overflow-y: auto; }
 
 .privacy-index-static-1 { margin:0 }

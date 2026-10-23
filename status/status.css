@@ -1,4 +1,4 @@
-:root { --readable-ink: #fff; --ink: #1a1813; --ink-rgb: 26, 24, 19; --sky: #0a0c18; }
+:root { --ink: #1a1813; --ink-rgb: 26, 24, 19; --sky: #0a0c18; }
 * { box-sizing: border-box; }
 html { background: var(--sky); }
 body { margin: 0; min-height: 100vh; font: 17px/1.5 "EB Garamond", Georgia, serif; color: var(--ink); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -29,10 +29,3 @@ p.note { font-style: italic; font-size: 15px; opacity: .55; margin-top: 1.2em; }
 .has-frame .code { font-size: clamp(80px, 13vw, 160px); }
 @media (prefers-reduced-motion: reduce) { .st .fl { animation: none; } }
 @media (max-width: 760px) { #chrome { padding: 12px 16px; } #logo { height: 24px; } .st { display: none; } }
-
-/* Meaningful text needs a solid local surface: the animated sky can cross either ink shade. */
-#dial { padding: .25em .5em; color: var(--readable-ink); background: var(--sky); border-radius: 4px; }
-#clock i, #work { opacity: 1; }
-main > div { padding: 1em; color: var(--readable-ink); background: var(--sky); border-radius: 4px; }
-.code, p, p.note, .go { opacity: 1; }
-.st .cap { color: var(--readable-ink); background: var(--sky); opacity: 1; }
