@@ -669,10 +669,10 @@ function motion(t) {
         const a = (c.i * 360 / n - ang) * Math.PI / 180, z = Math.cos(a), lit = clamp((z + 0.25) / 1.25, 0, 1);
         const s = 1200 / (1200 - it.R * z), x = it.R * Math.sin(a) * s;   // simple perspective projection of a ring
         c.el.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), -50%) scale(${s.toFixed(3)})`;
-        c.el.style.opacity = clamp(1 + z * 1.6, 0, 1).toFixed(3);
-        c.el.style.filter = `brightness(${(0.35 + 0.65 * lit).toFixed(3)})`;
+        c.el.querySelector('img').style.opacity = clamp(1 + z * 1.6, 0, 1).toFixed(3);
+        c.el.querySelector('img').style.filter = `brightness(${(0.35 + 0.65 * lit).toFixed(3)})`;
         c.el.style.zIndex = Math.round(100 + z * 50);
-        c.el.style.setProperty('--co', Math.pow(Math.max(0, z), 4).toFixed(2));
+        c.el.querySelector('.cap').style.visibility = z > .5 ? 'visible' : 'hidden';
       }
     } else if (it.kind === 'orbit') {
       // Three stray frames on a tilted ring, bottom-right to upper-left. Scrolling turns it once; time drifts it slowly.
@@ -687,8 +687,8 @@ function motion(t) {
         const x = u * cT - v * sT, y = u * sT + v * cT, s = 0.5 + 0.5 * (z + 1) / 2;
         c.el.style.transform = `translate(calc(-50% + ${x.toFixed(1)}px), calc(-50% + ${y.toFixed(1)}px)) scale(${s.toFixed(3)})`;
         c.el.style.zIndex = Math.round(10 + z * 5);
-        c.el.style.opacity = (0.55 + 0.45 * (z + 1) / 2).toFixed(3);
-        c.el.style.setProperty('--co', Math.max(0, z * z * z).toFixed(2));
+        c.el.querySelector('img').style.opacity = (0.55 + 0.45 * (z + 1) / 2).toFixed(3);
+        c.el.querySelector('.cap').style.visibility = z > .5 ? 'visible' : 'hidden';
       }
     } else if (it.kind === 'frieze') {
       const over = friezeTrack.scrollWidth - innerWidth + innerWidth * 0.07;
@@ -786,7 +786,7 @@ function openLight(i) {
   pic.style.opacity = 0;
   Object.assign(pic.style, px(to));
   pic.style.backgroundImage = `url("${cur}")`;
-  light.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 950, easing: FLY_EASE, fill: 'forwards' });
+  // Fade the photograph/cloud, keeping caption and control surfaces opaque.
   cloud.animate([{ opacity: .8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.3)' }], { duration: 1500, easing: 'ease-out', fill: 'forwards' });
   const kf = [{ ...px(from), borderRadius: sh.radius, clipPath: sh.clip, backgroundPosition: sh.pos }, { ...px(to), borderRadius: '0px', clipPath: sh.rectClip, backgroundPosition: '50% 50%' }];
   if (sh.clip === 'none') { delete kf[0].clipPath; delete kf[1].clipPath; }
@@ -813,7 +813,7 @@ function closeLight() {
   hiddenSrc = f; f.style.visibility = 'hidden';
   pic.style.opacity = 0;
   light.classList.remove('shown');
-  light.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 850, easing: FLY_EASE, fill: 'forwards' });
+  // The returning photograph animates; readable controls remain opaque.
   const kf = [{ ...px(from), borderRadius: '0px', clipPath: sh.rectClip, backgroundPosition: '50% 50%' }, { ...px(to), borderRadius: sh.radius, clipPath: sh.clip, backgroundPosition: sh.pos }];
   if (sh.clip === 'none') { delete kf[0].clipPath; delete kf[1].clipPath; }
   const a = fly.animate(kf, { duration: 850, easing: FLY_EASE, fill: 'forwards' });

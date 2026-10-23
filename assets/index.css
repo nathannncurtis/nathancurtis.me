@@ -137,6 +137,16 @@
   #light figcaption em, #light .k { opacity: 1; }
   #rail b, #rail b[data-l]::after { opacity: 1; }
   .cap { transition: none; }
+  .win .cap { opacity: 1; }
+  .st .cap, .k-lights .blob .cap, .k-frieze figure .cap,
+  .k-turn figure .cap, .k-orbit figure .cap { opacity: 1; visibility: hidden; }
+  .st:hover .cap, .k-lights .blob:hover .cap,
+  .k-frieze figure:hover .cap { visibility: visible; }
+  .po .ln small { opacity: 1; visibility: hidden; }
+  .po.lit .ln small { visibility: visible; }
+  .mu.dev { opacity: 1; visibility: hidden; }
+  #day { transition: none; }
+  #light figcaption { transition: none; }
   .ph .cap, .st:hover .cap, .k-lights .blob:hover .cap,
   .k-frieze figure:hover .cap { opacity: 1; }
   .po .ln small { transition: none; }
@@ -192,6 +202,14 @@
     #chrome::before { content: ""; position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--sky-z) 35%, rgba(0, 0, 0, 0)); }
   }
   @media (prefers-reduced-motion: reduce) { .st .fl, .k-lights .blob .sheet { animation: none !important; } }
+  /* Reading surfaces must never inherit an entrance fade. */
+  #day { transition: none; }
+  #light figcaption { transition: none; }
+  #light figcaption em, #light .k { opacity: 1; }
+  .mu .bar { box-shadow: 0 0 0 8px var(--paper); }
+  .mu button:focus-visible, .mu .bar:focus-within,
+  a:focus-visible, #light .k:focus-visible { outline-offset: 2px; }
+  #light .k:focus-visible { box-shadow: 0 0 0 4px var(--paper); }
 
 
     #wxdesk { position: fixed; right: 16px; bottom: 16px; z-index: 50; width: 248px; padding: 12px 14px; border-radius: 10px; background: rgba(20,20,24,.86); color: #eee; font: 12px/1.4 -apple-system, sans-serif; backdrop-filter: blur(8px); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
