@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { BASE } from './pages.mjs';
+import { stubAnalytics } from './checks.mjs';
 
 // Exercise the actual weather renderer and its WCAG reading surface at five-minute
 // intervals, including both ink transitions. Opacity is checked separately: alpha
 // on the whole reading surface must not reduce effective text contrast.
 for (const width of [390, 1440]) for (const weather of ['clear', 'overcast', 'fog', 'storm']) {
   test(`homepage reading contrast ${width}px ${weather}`, async ({ page }) => {
+    await stubAnalytics(page);
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${BASE}/?wx=${weather}&fast`);
     await page.waitForFunction(() => typeof paint === 'function' && document.body.classList.contains('ready'));
