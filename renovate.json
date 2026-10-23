@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Every pinned version in this repo stays current, one PR a week. Nothing merges itself and nobody is tagged.",
+  "extends": ["config:best-practices", ":disableDependencyDashboard", ":semanticCommitsDisabled"],
+  "schedule": ["* 0-6 * * 1"],
+  "timezone": "America/Los_Angeles",
+  "prConcurrentLimit": 3,
+  "automerge": false,
+  "assignees": [],
+  "reviewers": [],
+  "labels": ["dependencies"],
+  "vulnerabilityAlerts": { "enabled": true, "schedule": ["at any time"], "labels": ["security"] },
+  "lockFileMaintenance": { "enabled": true, "schedule": ["* 0-6 1 * *"] },
+  "packageRules": [
+    { "description": "One grouped PR for everything that isn't a major version.", "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"], "groupName": "all non-major" },
+    { "description": "Majors come one per PR, since they may need code changes.", "matchUpdateTypes": ["major"], "groupName": null }
+  ],
+  "customManagers": [
+    {
+      "description": "Tools CI downloads from GitHub releases: a `tag=` line, then the URL, then its sha256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "tag=(?<currentValue>v[0-9][^;\\s]*);[^\\n]*\\s+curl [^\\n]*https://github\\.com/(?<depName>[^/]+/[^/]+)/releases/download/[^\\n]*\\n\\s*echo \"(?<currentDigest>[a-f0-9]{64}) "
+      ],
+      "datasourceTemplate": "github-release-attachments"
+    },
+    {
+      "description": "Repos CI clones at a tag, checked against the tag's commit.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "git clone [^\\n]*--branch (?<currentValue>v[^\\s]+) https://github\\.com/(?<depName>[^/]+/[^/.]+)(\\.git)? [^\\n]*\\n[^\\n]*rev-parse HEAD\\)\" = (?<currentDigest>[a-f0-9]{40})"
+      ],
+      "datasourceTemplate": "github-tags"
+    },
+    {
+      "description": "pip installs pinned in workflows.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": ["pip install [^\\n]*?(?<depName>[a-z0-9_-]+)==(?<currentValue>[^\\s]+)"],
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "description": "The wrangler the deploy uses.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/deploy\\.yml$/"],
+      "matchStrings": ["wranglerVersion: \"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "wrangler",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}

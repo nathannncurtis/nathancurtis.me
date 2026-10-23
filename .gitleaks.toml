@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+# Only things that are public. A real token anywhere else is still caught.
+[allowlist]
+description = "The public analytics beacon"
+regexTarget = "line"
+regexes = [
+  # Cloudflare's analytics beacon token, which every page carries in public.
+  '''data-cf-beacon=[^>]*["']token["']\s*:\s*["'][0-9a-f]{32}["']''',
+]

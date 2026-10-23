@@ -1,0 +1,73 @@
+name: live
+
+# The live site, once a week: TLS, headers as the world sees them, HSTS preload, DNS, the certificate,
+# security.txt and Lighthouse over the real network. Upstream services can be down, so nothing here fails
+# the run (a failing schedule sends email); everything lands in the run summary.
+on:
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HOST: nathancurtis.me
+      RESOLVER: 1.1.1.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: TLS (testssl.sh)
+        continue-on-error: true
+        run: |
+          git clone -q --depth 1 --branch v3.2.4 https://github.com/testssl/testssl.sh.git testssl
+          [ "$(git -C testssl rev-parse HEAD)" = 97763a411c525720a5f9bd9d2cded416b10f210a ]
+          ./testssl/testssl.sh --quiet --color 0 --severity LOW --jsonfile testssl.json "https://$HOST" > /dev/null || true
+          {
+            echo '### TLS (testssl.sh, LOW and up)'
+            jq -r '.[] | select(.severity != "OK" and .severity != "INFO") | "- \(.severity) \(.id): \(.finding)"' testssl.json | head -40
+            jq -r '.[] | select(.id == "overall_grade") | "\nGrade: **\(.finding)**"' testssl.json
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Mozilla HTTP Observatory
+        continue-on-error: true
+        run: |
+          r=$(curl -sS -X POST "https://observatory-api.mdn.mozilla.net/api/v2/scan?host=$HOST")
+          echo "$r" | jq -r '"### HTTP Observatory\n\nGrade **\(.grade)**, score \(.score), \(.tests_failed) tests failed: \(.details_url)"' >> "$GITHUB_STEP_SUMMARY"
+      - name: HSTS preload
+        continue-on-error: true
+        run: |
+          s=$(curl -sS "https://hstspreload.org/api/v2/status?domain=$HOST" | jq -r .status)
+          p=$(curl -sS "https://hstspreload.org/api/v2/preloadable?domain=$HOST" | jq -r '[.errors[]?.summary] | join("; ")')
+          printf '### HSTS preload\n\nStatus: %s. %s\n' "$s" "${p:+Not yet preloadable: $p}" >> "$GITHUB_STEP_SUMMARY"
+      - name: DNS, certificate, security.txt
+        continue-on-error: true
+        run: |
+          caa=$(dig +short CAA "$HOST" @"$RESOLVER" | paste -sd ',' -)
+          ad=$(dig +dnssec "$HOST" @"$RESOLVER" | grep -q ' ad[ ;]' && echo signed || echo 'not signed')
+          end=$(echo | openssl s_client -servername "$HOST" -connect "$HOST:443" 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
+          exp=$(curl -sS "https://$HOST/.well-known/security.txt" | sed -n 's/^Expires: *//p')
+          sdays=$(( ($(date -d "$exp" +%s) - $(date +%s)) / 86400 ))
+          www=$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.$HOST/")
+          {
+            echo '### DNS and certificate'
+            echo "- CAA: ${caa:-none}"
+            echo "- DNSSEC: $ad"
+            echo "- Certificate: $days days left ($end)"
+            echo "- security.txt: expires in $sdays days"
+            echo "- www: $www"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: Lighthouse over the real network
+        continue-on-error: true
+        working-directory: .github/tests
+        env:
+          BASE: https://nathancurtis.me
+        run: |
+          npx playwright install --with-deps chromium
+          node lighthouse.mjs || true
