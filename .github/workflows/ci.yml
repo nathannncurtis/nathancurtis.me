@@ -1,0 +1,386 @@
+name: ci
+
+# Every pull request and every push to main. Nothing here deploys; deploy.yml does that.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.f.outputs.site }}
+      worker: ${{ steps.f.outputs.worker }}
+      served: ${{ steps.f.outputs.site == 'true' || steps.f.outputs.worker == 'true' || steps.f.outputs.tests == 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: f
+        with:
+          filters: |
+            site:
+              - '*.html'
+              - '*.js'
+              - '*.txt'
+              - '*.png'
+              - '*.ico'
+              - '*.svg'
+              - '_headers'
+              - 'LICENSE'
+              - '.well-known/**'
+              - 'fonts/**'
+              - 'music/**'
+              - 'photos/**'
+              - 'privacy/**'
+              - 'status/**'
+              - 'work/**'
+              - '.github/scripts/**'
+              - '.github/workflows/ci.yml'
+            worker:
+              - 'worker/**'
+              - 'wrangler.jsonc'
+              - '_headers'
+              - '.github/scripts/assemble.sh'
+              - '.github/workflows/ci.yml'
+            tests:
+              - '.github/tests/**'
+              - '.github/actions/**'
+              - '.zap/**'
+              - '.github/workflows/ci.yml'
+
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Range
+        id: range
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then BASE="$HEAD~1"; fi
+          echo "range=$BASE..$HEAD" >> "$GITHUB_OUTPUT"
+      - name: Workflow rules
+        run: bash .github/scripts/rules.sh
+      - name: Secrets
+        run: |
+          tag=v8.30.1; v=${tag#v}
+          curl -sSL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_linux_x64.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tgz" | sha256sum -c -
+          mkdir gl && tar -xzf gl.tgz -C gl
+          ./gl/gitleaks git --redact --no-banner --log-opts="${{ steps.range.outputs.range }}" .
+      - name: Shell scripts
+        run: |
+          tag=v0.11.0; v=${tag#v}
+          curl -sSL -o sc.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v$v/shellcheck-v$v.linux.x86_64.tar.xz"
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  sc.tar.xz" | sha256sum -c -
+          tar -xJf sc.tar.xz
+          git ls-files -z '*.sh' | xargs -0 "./shellcheck-v$v/shellcheck" -S warning
+
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Assemble the site
+        run: ./.github/scripts/assemble.sh
+      - name: Heads, icons, beacon, sitemap, robots, security.txt, CSP coverage
+        run: |
+          command -v xmllint >/dev/null || sudo apt-get install -y -qq libxml2-utils
+          xmllint --noout _site/sitemap.xml
+          python3 .github/scripts/check_site.py _site
+      - name: Everything content.js names exists
+        run: node .github/scripts/content.mjs _site
+      - name: Scripts parse
+        run: git ls-files -z '*.js' '*.mjs' | xargs -0 -n1 node --check
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --index-files index.html --fallback-extensions html --root-dir ${{ github.workspace }}/_site '_site/**/*.html'
+          fail: true
+
+  worker:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: Range requests
+        run: node worker/range.test.mjs
+      - name: Fuzz byte ranges and /sky
+        working-directory: .github/tests
+        env:
+          FUZZ_RUNS: '20000'
+        run: node worker.fuzz.mjs
+      # The wrangler deploy.yml pins; --dry-run builds and checks the config and uploads nothing.
+      - name: Builds for Cloudflare
+        run: node .github/tests/node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir "$RUNNER_TEMP/worker"
+
+  browsers:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            projects: --project=chromium --project=firefox --project=webkit --project=headers --project=pixel-7 --project=galaxy-s9 --project=iphone-se --project=iphone-15 --project=iphone-15-landscape --project=ipad --project=firefox-phone
+            browsers: chromium firefox webkit
+          - os: macos-latest
+            projects: --project=webkit --project=chromium --project=firefox --project=iphone-15 --project=ipad
+            browsers: chromium firefox webkit
+          - os: windows-latest
+            projects: --project=edge --project=chromium --project=firefox --project=webkit
+            browsers: chromium firefox webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: Browser cache
+        id: pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('.github/tests/package-lock.json') }}
+      - name: Browsers
+        if: steps.pw.outputs.cache-hit != 'true'
+        working-directory: .github/tests
+        shell: bash
+        run: npx playwright install ${{ matrix.browsers }}
+      # The Azure apt mirror sometimes crawls (100 KB/s); keep the downloaded .debs so a slow mirror costs one run, not every run.
+      - name: System library cache
+        if: runner.os == 'Linux'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-debs
+          key: apt-${{ matrix.os }}-${{ matrix.browsers }}-${{ hashFiles('.github/tests/package-lock.json') }}
+          restore-keys: apt-${{ matrix.os }}-
+      - name: System libraries
+        if: runner.os == 'Linux'
+        timeout-minutes: 20
+        working-directory: .github/tests
+        run: |
+          mkdir -p ~/apt-debs
+          sudo cp ~/apt-debs/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "30"; Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/90ci >/dev/null
+          npx playwright install-deps ${{ matrix.browsers }}
+          cp /var/cache/apt/archives/*.deb ~/apt-debs/ 2>/dev/null || true
+      - name: Every page, every browser and device
+        working-directory: .github/tests
+        shell: bash
+        run: npx playwright test ${{ matrix.projects }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browsers-${{ matrix.os }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
+  safari:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Let safaridriver drive Safari
+        run: sudo safaridriver --enable
+      - name: Desktop Safari
+        working-directory: .github/tests
+        run: node safari.mjs desktop
+      - name: Boot an iPhone simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          echo "Booting $(xcrun simctl list devices | grep "$udid")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          # Safari's Remote Automation switch, which safaridriver needs on iOS.
+          xcrun simctl spawn "$udid" defaults write com.apple.mobilesafari RemoteAutomationEnabled -bool true
+          xcrun simctl spawn "$udid" defaults write com.apple.WebKit.WebContent RemoteAutomationEnabled -bool true
+          # Open Safari once so safaridriver finds it running.
+          xcrun simctl launch "$udid" com.apple.mobilesafari
+          sleep 10
+      - name: Safari on iOS
+        working-directory: .github/tests
+        run: node safari.mjs ios
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: safari
+          path: test-results
+          if-no-files-found: ignore
+
+  android:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Hardware acceleration for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Chrome for Android, in the emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: playstore
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./.github/scripts/android.sh
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android
+          path: test-results
+          if-no-files-found: ignore
+
+  lighthouse:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Browser cache
+        id: pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('.github/tests/package-lock.json') }}
+      - name: Chromium
+        timeout-minutes: 10
+        working-directory: .github/tests
+        run: |
+          [ "${{ steps.pw.outputs.cache-hit }}" = true ] || npx playwright install chromium
+          npx playwright install-deps chromium
+      - name: Phone and desktop scores and budgets
+        working-directory: .github/tests
+        run: node lighthouse.mjs
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse
+          path: lighthouse
+          if-no-files-found: ignore
+
+  scan:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: CSP Evaluator
+        working-directory: .github/tests
+        run: node csp.mjs
+      - name: Retire.js, known-vulnerable JavaScript in the site
+        working-directory: .github/tests
+        run: npx retire --path ../../_site --severity low --exitwith 1
+      - name: Semgrep, JavaScript and DOM XSS rules
+        run: |
+          pip install --quiet semgrep==1.181.0
+          semgrep scan --metrics=off --error --config p/javascript --config p/xss --config p/security-audit \
+            --exclude .github/tests/node_modules --exclude _site .
+      - name: Known vulnerabilities in the test tools
+        working-directory: .github/tests
+        run: |
+          npm audit --audit-level=high
+          tag=v2.7.0; v=${tag#v}
+          curl -sSL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/v$v/osv-scanner_linux_amd64"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  osv-scanner" | sha256sum -c -
+          chmod +x osv-scanner
+          ./osv-scanner scan source --lockfile package-lock.json
+
+  zap:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      # The full scan spiders every page and then attacks each request (injection, traversal, header abuse).
+      - uses: zaproxy/action-full-scan@3c58388149901b9a03b7718852c5ba889646c27c # v0.13.0
+        with:
+          target: http://127.0.0.1:8787
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap
+      - name: Fail on High
+        run: |
+          jq -r '.site[].alerts[] | "\(.riskdesc) \(.alertRef) \(.name)"' report_json.json
+          [ "$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)" -eq 0 ]
+
+  nuclei:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Nuclei and its templates
+        run: |
+          tag=v3.11.1; v=${tag#v}
+          curl -sSL -o nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v$v/nuclei_${v}_linux_amd64.zip"
+          echo "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6  nuclei.zip" | sha256sum -c -
+          unzip -q nuclei.zip nuclei
+          git clone -q --depth 1 --branch v10.5.0 https://github.com/projectdiscovery/nuclei-templates.git templates
+          [ "$(git -C templates rev-parse HEAD)" = f8b8b8dcd70d93826c3767e1829ef8243af9f03b ]
+      - name: Scan, fail on High or Critical
+        run: |
+          touch nuclei.jsonl
+          ./nuclei -u http://127.0.0.1:8787 -t templates/http -disable-update-check -no-color -silent -jsonl -o nuclei.jsonl > /dev/null || true
+          jq -r '"\(.info.severity) \(."template-id") \(."matched-at")"' nuclei.jsonl | sort -u
+          [ "$(jq -s '[.[] | select(.info.severity == "high" or .info.severity == "critical")] | length' nuclei.jsonl)" -eq 0 ]
+
+  ci-ok:
+    needs: [changes, rules, site, worker, browsers, safari, android, lighthouse, scan, zap, nuclei]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job passed or was skipped
+        run: |
+          [ "${{ contains(needs.*.result, 'failure') }}" = false ] && [ "${{ contains(needs.*.result, 'cancelled') }}" = false ]
