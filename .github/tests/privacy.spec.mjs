@@ -11,3 +11,13 @@ for (const hour of [0, 6, 6.5, 7, 12, 18, 18.5, 19, 23]) {
     expect(violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
   });
 }
+
+test('error-page notes remain readable at dawn and dusk', async ({ page }) => {
+  await page.route(/cloudflareinsights\.com/, r => r.fulfill({ status: 200, body: '' }));
+  for (const hour of [6.5, 18.5]) {
+    const response = await page.goto(`${BASE}/no-such-page?h=${hour}`);
+    expect(response.status()).toBe(404);
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
+  }
+});
