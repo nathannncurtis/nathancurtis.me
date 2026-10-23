@@ -8,7 +8,9 @@
   window.cspHTML = html => html.replace(/<([a-z][^<>]*?)\sstyle="([^"]*)"([^<>]*?)>/gi, (_, before, declarations, after) => {
     let name = rules.get(declarations);
     if (!name) {
-      name = `presentation-${rules.size}`;
+      let hash = 0xcbf29ce484222325n;
+      for (const character of declarations) hash = BigInt.asUintN(64, (hash ^ BigInt(character.codePointAt(0))) * 0x100000001b3n);
+      name = `presentation-${hash.toString(36)}`;
       // These declarations originate in our JS templates, never remote markup.
       // CSSStyleSheet validates their syntax; CSS still obeys resource CSP.
       sheet.insertRule(`.${name} { ${declarations} }`, sheet.cssRules.length);

@@ -14,5 +14,7 @@ try {
   await page.goto(BASE + '/work/');
   await page.locator('.meta').first().waitFor();
   const html = (await page.locator('#list').innerHTML()).replaceAll('e reveal', 'e shown');
+  const rules = await page.evaluate(() => [...[...document.styleSheets].find(s => s.href?.endsWith('/assets/runtime.css')).cssRules].map(r => r.cssText).join('\n'));
+  writeFileSync(new URL('../../assets/work-prerender.css', import.meta.url), rules + '\n');
   writeFileSync(file, source.replace(/<main id="list">[\s\S]*?<\/main>/, `<main id="list">${html}</main>`));
 } finally { await browser.close(); }

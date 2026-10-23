@@ -6,7 +6,7 @@ const base = process.env.SECURITY_BASE || 'http://127.0.0.1:8791';
 const policy = readFileSync('_headers', 'utf8').split('\n').find(l => l.includes('Content-Security-Policy:')).split('Content-Security-Policy:')[1].trim();
 assert(!policy.includes('unsafe-inline'));
 const paths = ['/', '/work/', '/privacy/', '/404.html', '/status/200.html', '/status/403.html', '/status/410.html', '/status/500.html', '/status/503.html'];
-for (const engine of [chromium, firefox, webkit]) {
+for (const engine of [chromium, firefox, webkit].filter(e => !process.env.SECURITY_ENGINE || e.name() === process.env.SECURITY_ENGINE)) {
   const browser = await engine.launch();
   for (const path of paths) {
     const page = await browser.newPage();
