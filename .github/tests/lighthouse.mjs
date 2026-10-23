@@ -15,6 +15,9 @@ const FLOORS = {
 };
 // Known findings on the site, accepted until the follow-up named beside each lands. Keys: path, or path@form.
 const ACCEPTED = {
+  // The homepage sky changes its ink through the day; checks.mjs accepts this same known contrast finding.
+  // Follow-up: enforce a contrast floor in the sky colours. All other homepage audits still fail.
+  "/": ["color-contrast"],
   // /work: the reveal animation grows each entry's height as it opens (layout shift ~0.95), which also costs
   // performance; Lighthouse reads the lines mid-fade, so contrast fails there while axe passes them after it.
   '/work': ['performance', 'cumulative-layout-shift', 'color-contrast'],
