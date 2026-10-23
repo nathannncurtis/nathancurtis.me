@@ -10,20 +10,24 @@ for (const width of [390, 1440]) for (const weather of ['clear', 'overcast', 'fo
     await page.goto(`${BASE}/?wx=${weather}&fast`);
     await page.waitForFunction(() => typeof paint === 'function' && document.body.classList.contains('ready'));
     await page.waitForTimeout(100);
-    const minimum = await page.evaluate(() => {
+    const contrast = await page.evaluate(() => {
       const luminance = rgb => rgb.map(v => { const c = v / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; }).reduce((s, c, i) => s + c * [.2126, .7152, .0722][i], 0);
-      let minimum = Infinity;
+      const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
+      const values = value => value.match(/[\d.]+/g).slice(0, 3).map(Number);
+      let text = Infinity, control = Infinity;
       for (let minute = 0; minute < 1440; minute += 5) {
         paint(minute / 60, 0, 0);
         const css = getComputedStyle(document.documentElement);
-        const ink = css.getPropertyValue('--ink').match(/[\d.]+/g).map(Number);
-        const paper = css.getPropertyValue('--paper').match(/[\d.]+/g).map(Number);
-        const a = luminance(ink), b = luminance(paper);
-        minimum = Math.min(minimum, (Math.max(a, b) + .05) / (Math.min(a, b) + .05));
+        const ink = values(css.getPropertyValue('--ink'));
+        const paper = values(css.getPropertyValue('--paper'));
+        text = Math.min(text, ratio(ink, paper));
+        const bar = document.querySelector('.mu .bar');
+        if (bar) control = Math.min(control, ratio(values(getComputedStyle(bar).backgroundColor), paper));
       }
-      return minimum;
+      return { text, control };
     });
-    expect(minimum).toBeGreaterThanOrEqual(4.5);
+    expect(contrast.text).toBeGreaterThanOrEqual(4.5);
+    expect(contrast.control).toBeGreaterThanOrEqual(3);
     const fadedText = await page.evaluate(() => {
       const failures = [];
       for (const hour of [0, .8, 3.2, 6, 7.4, 11.2, 12.4, 18.5, 21]) {
