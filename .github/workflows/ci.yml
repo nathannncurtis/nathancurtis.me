@@ -176,12 +176,24 @@ jobs:
         working-directory: .github/tests
         shell: bash
         run: npx playwright install ${{ matrix.browsers }}
-      # apt mirrors can hang; fail fast rather than hold the job for its whole timeout.
+      # The Azure apt mirror sometimes crawls (100 KB/s); keep the downloaded .debs so a slow mirror costs one run, not every run.
+      - name: System library cache
+        if: runner.os == 'Linux'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-debs
+          key: apt-${{ matrix.os }}-${{ matrix.browsers }}-${{ hashFiles('.github/tests/package-lock.json') }}
+          restore-keys: apt-${{ matrix.os }}-
       - name: System libraries
         if: runner.os == 'Linux'
-        timeout-minutes: 10
+        timeout-minutes: 20
         working-directory: .github/tests
-        run: npx playwright install-deps ${{ matrix.browsers }}
+        run: |
+          mkdir -p ~/apt-debs
+          sudo cp ~/apt-debs/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+          echo 'Acquire::Retries "5"; Acquire::http::Timeout "30"; Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/90ci >/dev/null
+          npx playwright install-deps ${{ matrix.browsers }}
+          cp /var/cache/apt/archives/*.deb ~/apt-debs/ 2>/dev/null || true
       - name: Every page, every browser and device
         working-directory: .github/tests
         shell: bash
