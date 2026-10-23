@@ -250,12 +250,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/serve
+      - name: Android browser guard unit tests
+        run: node --test .github/tests/android-version.test.mjs
       - name: Hardware acceleration for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Chrome for Android, in the emulator
+      - name: Current Google Chrome for Android (version verified)
+        env:
+          ANDROID_EXPECT_API: '35'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 35
