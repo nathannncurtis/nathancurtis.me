@@ -39,14 +39,15 @@
   #cur.text span { transform: translate(-50%, -55%) scaleY(1.25); }
   .text { min-width: 0; }
   .para { margin-bottom: 14px; }
-  .ln { display: block; height: 27px; white-space: pre; }
+  .ln { display: block; min-height: 27px; white-space: normal; }
+  .side .mark img { aspect-ratio: 1075 / 534; }
   .bar { display: block; height: 27px; position: relative; }
   .bar::after { content: ""; position: absolute; left: 0; top: 7px; height: 14px; width: var(--w); background: var(--bar); border-radius: 1px; transform-origin: left; }
   .lead .ln { color: var(--ink); }
   .e:not(.sealed) .para:not(.lead) .ln { color: color-mix(in srgb, var(--ink) 82%, var(--bg)); }
-  .reveal .ln, .reveal .side > * { opacity: 0; transform: translateY(8px); }
+  .reveal .ln, .reveal .side > * { opacity: 1; transform: none; }
   .reveal .bar::after, .reveal .name-bar { transform: scaleX(0); }
-  .shown .ln, .shown .side > * { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.2,0,.1,1), transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
+  .shown .ln, .shown .side > * { opacity: 1; transform: none; transition: transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
   .shown .bar::after, .shown .name-bar { transform: scaleX(1); transition: transform .7s cubic-bezier(.65,0,.15,1); transition-delay: var(--d, 0ms); }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; margin-top: 6px; font-size: 13px; color: var(--dim); }
   .meta .go { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); transition: color .25s; }
@@ -85,19 +86,19 @@
   @media (prefers-reduced-motion: reduce) { .fig .s:not(.q) { stroke-dashoffset: 0; } .fig .q, .fig .o { opacity: 1; } }
   .ls { margin: 0; color: color-mix(in srgb, var(--ink) 70%, var(--bg)); }
   .ls .nx { display: inline; height: auto; font: 14px/27px "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0; padding: 0 1px; color: var(--dim); }
-  .reveal .ls { opacity: 0; transform: translateY(8px); }
-  .shown .ls { opacity: 1; transform: none; transition: opacity .6s cubic-bezier(.2,0,.1,1), transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
+  .reveal .ls { opacity: 1; transform: none; }
+  .shown .ls { opacity: 1; transform: none; transition: transform .6s cubic-bezier(.2,0,.1,1); transition-delay: var(--d, 0ms); }
   @media (prefers-reduced-motion: reduce) { .reveal .ls { opacity: 1; transform: none; } }
-  .diagram { font: 12px/18px ui-monospace, "Cascadia Mono", Consolas, Menlo, "DejaVu Sans Mono", monospace; color: color-mix(in srgb, var(--dim) 80%, var(--bg)); width: max-content; }
+  .diagram { font: 12px/18px ui-monospace, "Cascadia Mono", Consolas, Menlo, "DejaVu Sans Mono", monospace; color: var(--dim); width: max-content; }
   .diagram .r { display: block; height: 18px; white-space: pre; }
   .diagram .zone { color: var(--dim); }
   .diagram .div { color: var(--line); }
-  .diagram .bx { color: color-mix(in srgb, var(--ink) 45%, var(--bg)); }
+  .diagram .bx { color: var(--dim); }
   .diagram .name { color: var(--ink); font-weight: 500; }
   .diagram .role, .diagram .lab { color: var(--dim); }
   .diagram .lit { color: var(--accent) !important; }
   .diagram .hot { color: var(--accent); }
-  .diagram .trail { color: var(--accent); opacity: .5; }
+  .diagram .trail { color: var(--accent); }
   .parts { margin: 4px 0 18px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 22px; font-size: 15px; line-height: 24px; }
   .parts dt { font-weight: 500; }
   .parts dt, .parts dd { transition: color .25s; }
@@ -136,8 +137,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .reveal .ln, .reveal .side > *, .reveal .bar::after, .reveal .name-bar { opacity: 1; transform: none; } }
 
-  :root { --s0: #c4d0db; --s1: #f1eee7; --dim: #6f695e; --line: #c9cdd0; --bg: color-mix(in oklab, var(--s0), var(--s1) 30%); }
-  @media (prefers-color-scheme: dark) { :root { --s0: #0a1a2e; --s1: #3a586d; --dim: #a29d92; --line: #2a3a48; } }
+  :root { --s0: #c4d0db; --s1: #f1eee7; --dim: #4c4942; --accent: #74451f; --faint: #4c4942; --line: #c9cdd0; --bg: color-mix(in oklab, var(--s0), var(--s1) 30%); }
+  @media (prefers-color-scheme: dark) { :root { --s0: #0a1a2e; --s1: #3a586d; --dim: #e0dbd1; --accent: #ffcd95; --faint: #e0dbd1; --line: #2a3a48; } }
   html { background: var(--s0); }
   body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"),
@@ -145,4 +146,123 @@
     background-blend-mode: soft-light, normal; }
   @media (min-width: 1180px) { .e .side { background: color-mix(in srgb, var(--s0) 62%, transparent); } }
   figure { background: color-mix(in srgb, var(--s0) 55%, transparent); }
+  figure:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  a:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 
+.work-index-static-1 { font-weight:500;--d:80ms }
+.work-index-static-2 { --d:125ms }
+.work-index-static-3 { --d:170ms }
+.work-index-static-4 { height:auto;white-space:normal;--d:215ms }
+.work-index-static-5 { height:auto;white-space:normal;--d:260ms }
+.work-index-static-6 { height:auto;white-space:normal;--d:305ms }
+.work-index-static-7 { height:auto;white-space:normal;--d:350ms }
+.work-index-static-8 { height:auto;white-space:normal;--d:395ms }
+.work-index-static-9 { height:auto;white-space:normal;--d:440ms }
+.work-index-static-10 { height:auto;white-space:normal;--d:485ms }
+.work-index-static-11 { height:auto;white-space:normal;--d:530ms }
+.work-index-static-12 { height:auto;white-space:normal;--d:575ms }
+.work-index-static-13 { height:auto;white-space:normal;--d:620ms }
+.work-index-static-14 { height:auto;white-space:normal;--d:665ms }
+.work-index-static-15 { font-weight:500;--d:80ms }
+.work-index-static-16 { --d:125ms }
+.work-index-static-17 { --fd:200ms }
+.work-index-static-18 { --fd:260ms }
+.work-index-static-19 { --fd:150ms }
+.work-index-static-20 { --fd:380ms }
+.work-index-static-21 { --fd:380ms }
+.work-index-static-22 { --fd:380ms }
+.work-index-static-23 { --fd:380ms }
+.work-index-static-24 { --fd:470ms }
+.work-index-static-25 { --fd:470ms }
+.work-index-static-26 { --fd:470ms }
+.work-index-static-27 { --fd:470ms }
+.work-index-static-28 { --fd:560ms }
+.work-index-static-29 { --fd:560ms }
+.work-index-static-30 { --fd:560ms }
+.work-index-static-31 { --fd:560ms }
+.work-index-static-32 { --fd:650ms }
+.work-index-static-33 { --fd:650ms }
+.work-index-static-34 { --fd:650ms }
+.work-index-static-35 { --fd:650ms }
+.work-index-static-36 { --fd:740ms }
+.work-index-static-37 { --fd:740ms }
+.work-index-static-38 { --fd:740ms }
+.work-index-static-39 { --fd:740ms }
+.work-index-static-40 { --fd:900ms }
+.work-index-static-41 { --fd:900ms }
+.work-index-static-42 { height:auto;white-space:normal;--d:170ms }
+.work-index-static-43 { --d:0ms }
+.work-index-static-44 { --d:80ms }
+.work-index-static-45 { --d:300ms }
+.work-index-static-46 { --d:360ms }
+.work-index-static-47 { --d:420ms }
+.work-index-static-48 { --d:480ms }
+.work-index-static-49 { height:auto;white-space:normal;--d:125ms }
+.work-index-static-50 { font-weight:500;--d:80ms }
+.work-index-static-51 { --d:125ms }
+.work-index-static-52 { --fd:100ms }
+.work-index-static-53 { --fd:100ms }
+.work-index-static-54 { --fd:150ms }
+.work-index-static-55 { --fd:200ms }
+.work-index-static-56 { --fd:150ms }
+.work-index-static-57 { --fd:200ms }
+.work-index-static-58 { --fd:150ms }
+.work-index-static-59 { --fd:200ms }
+.work-index-static-60 { --fd:200ms }
+.work-index-static-61 { --fd:200ms }
+.work-index-static-62 { --fd:200ms }
+.work-index-static-63 { --fd:200ms }
+.work-index-static-64 { --fd:200ms }
+.work-index-static-65 { --fd:300ms }
+.work-index-static-66 { --fd:400ms }
+.work-index-static-67 { --fd:300ms }
+.work-index-static-68 { --fd:300ms }
+.work-index-static-69 { --fd:1300ms }
+.work-index-static-70 { --fd:1350ms }
+.work-index-static-71 { --fd:1500ms }
+.work-index-static-72 { --fd:1550ms }
+.work-index-static-73 { height:auto;white-space:normal;--d:170ms }
+.work-index-static-74 { --d:0ms }
+.work-index-static-75 { --d:80ms }
+.work-index-static-76 { height:auto;white-space:normal;--d:125ms }
+.work-index-static-77 { --d:0ms }
+.work-index-static-78 { --d:80ms }
+.work-index-static-79 { height:auto;white-space:normal;--d:125ms }
+.work-index-static-80 { font-weight:500;--d:80ms }
+.work-index-static-81 { --d:125ms }
+.work-index-static-82 { --fd:200ms }
+.work-index-static-83 { --fd:260ms }
+.work-index-static-84 { --fd:320ms }
+.work-index-static-85 { --fd:380ms }
+.work-index-static-86 { --fd:440ms }
+.work-index-static-87 { --fd:500ms }
+.work-index-static-88 { --fd:560ms }
+.work-index-static-89 { --fd:700ms }
+.work-index-static-90 { --fd:1000ms }
+.work-index-static-91 { --fd:800ms }
+.work-index-static-92 { --fd:1000ms }
+.work-index-static-93 { --fd:1300ms }
+.work-index-static-94 { --fd:1400ms }
+.work-index-static-95 { height:auto;white-space:normal;--d:170ms }
+.work-index-static-96 { --d:0ms }
+.work-index-static-97 { --d:80ms }
+.work-index-static-98 { --d:300ms }
+.work-index-static-99 { --d:360ms }
+.work-index-static-100 { --d:420ms }
+.work-index-static-101 { --d:480ms }
+.work-index-static-102 { height:auto;white-space:normal;--d:125ms }
+.work-index-static-103 { font-weight:500;--d:80ms }
+.work-index-static-104 { --d:125ms }
+.work-index-static-105 { --fd:200ms }
+.work-index-static-106 { --fd:200ms }
+.work-index-static-107 { --fd:400ms }
+.work-index-static-108 { --fd:700ms }
+.work-index-static-109 { --fd:700ms }
+.work-index-static-110 { --fd:900ms }
+.work-index-static-111 { height:auto;white-space:normal;--d:170ms }
+.work-index-static-112 { --d:0ms }
+.work-index-static-113 { --d:80ms }
+.work-index-static-114 { height:auto;white-space:normal;--d:125ms }
+.work-index-static-115 { --d:0ms }
+.work-index-static-116 { --d:80ms }
+.work-index-static-117 { height:auto;white-space:normal;--d:125ms }

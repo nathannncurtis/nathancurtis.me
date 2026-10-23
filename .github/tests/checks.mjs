@@ -4,12 +4,6 @@ import { OUTSIDE } from './pages.mjs';
 
 // Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
 const ACCEPTED_AXE = [
-  // /work: the muted ink (detail lines, separator dots, the live version, the kind labels) is under 4.5:1.
-  // Follow-up: lift the muted ink.
-  { rule: 'color-contrast', path: '/work', target: /./ },
-  // /work on phones and tablets: the project figures scroll sideways but can't take keyboard focus.
-  // Follow-up: tabindex="0" and a label on each scrolling figure.
-  { rule: 'scrollable-region-focusable', path: '/work', target: /figure|\.fig/ },
 ];
 
 export async function watch(page, base, expect404 = false) {

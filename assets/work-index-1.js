@@ -1,8 +1,6 @@
 
-import { prepareWithSegments, layoutWithLines } from '/work/pretext/layout.js';
 import { mount } from '/work/ascii3d.js';
 
-const FONT = '16px "IBM Plex Sans"', LEAD = '500 16px "IBM Plex Sans"', LH = 27;
 const GH = '<svg class="i" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>';
 
 const FILL = 'the quick work of a long afternoon was set against the slower record of what had been asked for and what had arrived and each part of it was checked twice before anything moved from one place to the next while the rest of the system kept running beside it without being told';
@@ -46,8 +44,6 @@ const GLYPH = '-=+*#:%=+-*';
 const rg = () => GLYPH[(Math.random() * GLYPH.length) | 0];
 const noise = t => (typeof t === 'number' ? 'x'.repeat(t) : t).replace(/\S/g, rg);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const cache = new Map();
-const lines = (t, w, f = FONT) => { const k = f + t; if (!cache.has(k)) cache.set(k, prepareWithSegments(t, f)); return layoutWithLines(cache.get(k), w, LH).lines; };
 
 const T = (x, y, t, c = '', d = 0, a = '') => `<text class="o ${c}" x="${x}" y="${y}" ${a} style="--fd:${d}ms">${esc(t)}</text>`;
 const P = (d, c, dl = 0) => `<path class="s ${c}"${c === 'q' ? '' : ' pathLength="1"'} d="${d}" style="--fd:${dl}ms"/>`;
@@ -99,13 +95,14 @@ const figure = (e, n) => {
   return `<figure class="fig"><svg viewBox="-4 -4 648 ${f.h + 8}" aria-hidden="true">${f.svg}</svg><figcaption><b>Fig. ${n}</b>${esc(f.cap)}</figcaption></figure>`;
 };
 const list = document.getElementById('list');
+const initialArticles = Array.from(list.children);
 let figN = 1;
 entries.forEach(e => { if (e.fig) e.figN = ++figN; });
 entries.forEach((e, i) => {
-  const a = document.createElement('article');
+  const a = initialArticles[i] || document.createElement('article');
   a.className = 'e reveal' + (e.sealed ? ' sealed' : '');
-  a.innerHTML = cspHTML(`<div class="side">${e.sealed ? `<span class="name-x" style="--d:0ms">${esc(noise(e.name))}</span>` : `<h2><a href="${e.url}" target="_blank" rel="noopener">${esc(e.name)}</a>${e.mark ? `<picture class="mark" aria-hidden="true"><source media="(prefers-color-scheme: dark)" srcset="orca-mark-dark.svg"><img src="orca-mark-light.svg" alt=""></picture>` : ''}</h2>`}<div class="kind">${esc(e.kind)}</div></div><div class="text"></div>`);
-  list.appendChild(a);
+  if (!a.children.length) a.innerHTML = cspHTML(`<div class="side">${e.sealed ? `<span class="name-x" style="--d:0ms">${esc(noise(e.name))}</span>` : `<h2><a href="${e.url}" target="_blank" rel="noopener">${esc(e.name)}</a>${e.mark ? `<picture class="mark" aria-hidden="true"><source media="(prefers-color-scheme: dark)" srcset="orca-mark-dark.svg"><img src="orca-mark-light.svg" alt=""></picture>` : ''}</h2>`}<div class="kind">${esc(e.kind)}</div></div><div class="text"></div>`);
+  if (!a.isConnected) list.appendChild(a);
   e.el = a; e.textEl = a.querySelector('.text');
 });
 
@@ -117,9 +114,9 @@ function render(e) {
     html += `<div class="para"><p class="ls" style="${d()}">${esc(e.line).replace(/\{(\d+)\}/g, (_, c) => `<span class="nx">${esc(noise(+c))}</span>`)}</p></div>`;
     if (e.fig) html += figure(e, e.figN);
   } else {
-    html += `<div class="para lead">${lines(e.lead, w, LEAD).map(l => `<span class="ln" style="font-weight:500;${d()}">${esc(l.text)}</span>`).join('')}</div>`;
+    html += `<div class="para lead"><span class="ln" style="font-weight:500;${d()}">${esc(e.lead)}</span></div>`;
     e.paras.forEach((p, j) => {
-      html += `<div class="para">${lines(p, w).map(l => `<span class="ln" style="${d()}">${esc(l.text)}</span>`).join('')}</div>`;
+      html += `<div class="para"><span class="ln" style="${d()}">${esc(p)}</span></div>`;
       if (e.diagram && j === 0) html += `<figure><div class="diagram" id="diagram"></div><figcaption><b>Fig. 1</b>The pattern, end to end. Hover a part to find it.</figcaption></figure>`;
     });
     if (e.fig) html += figure(e, e.figN);
@@ -132,7 +129,15 @@ function render(e) {
   const go = e.sealed ? '' : site + `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
   html += `<div class="meta ln" style="height:auto;white-space:normal;${d()}">${meta}${go}</div>`;
   e.textEl.innerHTML = cspHTML(html);
+  e.textEl.querySelectorAll('figure').forEach((fig, index) => {
+    const caption = fig.querySelector('figcaption');
+    if (e.sealed) { fig.setAttribute('aria-label', 'Redacted project illustration'); }
+    else if (caption) { caption.id = `caption-${entries.indexOf(e)}-${index}`; fig.setAttribute('aria-labelledby', caption.id); }
+    // Native scrolling handles arrows, touch and pointer input. Only actual overflow adds a tab stop.
+    fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1;
+  });
   if (e.diagram) { drawDiagram(); hotNow = new Map(); litNow = new Set(); }
+  e.textEl.querySelectorAll('figure').forEach(fig => { fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1; });
 }
 
 const diagram = (() => {
@@ -224,7 +229,7 @@ function flow(on) {
   raf = requestAnimationFrame(tick);
 }
 
-await Promise.all([document.fonts.load(FONT), document.fonts.load(LEAD), document.fonts.load('12px "IBM Plex Mono"'), document.fonts.load(NX)]);
+// Native paragraph wrapping renders immediately; fonts never gate meaningful content.
 entries.forEach(render);
 
 const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting) { x.target.classList.add('shown'); io.unobserve(x.target); } }), { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
