@@ -9,6 +9,13 @@ const base = 'http://10.0.2.2:8787';
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
 const context = browser.contexts()[0];
 mkdirSync('../../test-results/android', { recursive: true });
+// Straight after boot the emulator's network can still be coming up (ERR_ADDRESS_UNREACHABLE); wait for the host.
+const probe = await context.newPage();
+for (let i = 1; ; i++) {
+  try { await probe.goto(base + '/', { timeout: 10_000 }); break; }
+  catch (e) { if (i === 30) throw e; await new Promise((r) => setTimeout(r, 2000)); }
+}
+await probe.close();
 let bad = 0;
 for (const p of PAGES) {
   const page = await context.newPage();
