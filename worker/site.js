@@ -1,3 +1,4 @@
+import { SECURITY_HEADERS } from './security.js';
 // nathancurtis.me: the pages are static files served straight from Cloudflare's edge.
 // This Worker only runs for /sky; every other path goes to the files without touching it.
 
@@ -88,8 +89,10 @@ async function ranged(req, env) {
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
-    if (url.pathname === '/sky') return weather(req, env, ctx);
-    if (url.pathname.startsWith('/music/')) return ranged(req, env);
-    return env.ASSETS.fetch(req);
+    const response = await (url.pathname === '/sky' ? weather(req, env, ctx)
+      : url.pathname.startsWith('/music/') ? ranged(req, env) : env.ASSETS.fetch(req));
+    const headers = new Headers(response.headers);
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) headers.set(name, value);
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   },
 };

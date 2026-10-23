@@ -4,23 +4,18 @@ import { OUTSIDE } from './pages.mjs';
 
 // Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
 const ACCEPTED_AXE = [
-  // The day page colours its text from the sky at the visitor's hour (music titles and controls, poem headings and
-  // notes, the Greece heading), and at some hours they fall under 4.5:1. Follow-up: a contrast floor in the sky code.
-  { rule: 'color-contrast', path: '/', target: /./ },
-  // /work: the muted ink (detail lines, separator dots, the live version, the kind labels) is under 4.5:1.
-  // Follow-up: lift the muted ink.
-  { rule: 'color-contrast', path: '/work', target: /./ },
-  // /work on phones and tablets: the project figures scroll sideways but can't take keyboard focus.
-  // Follow-up: tabindex="0" and a label on each scrolling figure.
-  { rule: 'scrollable-region-focusable', path: '/work', target: /figure|\.fig/ },
 ];
+
+export async function stubAnalytics(page) {
+  // The analytics beacon only accepts the real site's origin; answer it here so it stays quiet.
+  await page.route(/cloudflareinsights\.com/, r => r.fulfill(/beacon/.test(r.request().url())
+    ? { status: 200, contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' }, body: '' }
+    : { status: 204, headers: { 'access-control-allow-origin': '*' } }));
+}
 
 export async function watch(page, base, expect404 = false) {
   const problems = [];
-  // The analytics beacon only accepts the real site's origin; answer it here so it stays quiet.
-  await page.route(/cloudflareinsights\.com/, r => r.fulfill(/beacon/.test(r.request().url())
-    ? { status: 200, contentType: 'application/javascript', body: '' }
-    : { status: 204, headers: { 'access-control-allow-origin': '*' } }));
+  await stubAnalytics(page);
   page.on('pageerror', e => problems.push(`script error: ${e.message}`));
   page.on('console', m => {
     if (m.type() !== 'error') return;

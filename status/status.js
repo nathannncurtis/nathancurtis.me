@@ -40,10 +40,13 @@
     }
     const k = smooth(0.37, 0.47, lum(mix(z, o, 0.5))), ink = mix(INK_D, INK_L, k).map(Math.round);
     const st = document.documentElement.style;
+    const linear = o.map(v => { const c = Math.round(v) / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+    const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+    st.setProperty('--readable-ink', luminance > 0.179 ? '#000' : '#fff');
     st.setProperty('--ink', `rgb(${ink})`); st.setProperty('--ink-rgb', ink.join(', ')); st.setProperty('--sky', rgb(o)); st.setProperty('--sa', (0.22 + 0.38 * (1 - k)).toFixed(2));
   }
   const logo = document.getElementById('logo');
-  if (logo && window.SIG) { logo.setAttribute('viewBox', `0 0 ${SIG.w} ${SIG.h}`); logo.innerHTML = SIG.paths.map(p => `<path d="${p.d}" style="stroke-width:${p.w}"/>`).join(''); }
+  if (logo && window.SIG) { logo.setAttribute('viewBox', `0 0 ${SIG.w} ${SIG.h}`); logo.innerHTML = SIG.paths.map(p => `<path d="${p.d}" stroke-width="${p.w}"/>`).join(''); }
   const clock = document.getElementById('clock');
   const clockText = document.body.dataset.clock;   // a page can pin or break the clock
   function frame(t) {

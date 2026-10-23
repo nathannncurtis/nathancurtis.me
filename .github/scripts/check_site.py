@@ -63,12 +63,20 @@ for rel, url in PAGES.items():
     img = h.meta.get("og:image", "")
     if img.startswith(DOMAIN) and not (SITE / img[len(DOMAIN):].lstrip("/")).is_file(): err(f"{rel}: og:image {img} isn't in the site")
 
-# Every HTML file: icons, the analytics beacon, and links that go somewhere
+# The fallback is excluded from indexing; valid pages must remain indexable.
+if "noindex" not in {x.strip().lower() for x in parse(SITE / "404.html").meta.get("robots", "").split(",")}:
+    err("404.html: missing robots noindex")
+for rel in PAGES:
+    if "noindex" in {x.strip().lower() for x in parse(SITE / rel).meta.get("robots", "").split(",")}:
+        err(f"{rel}: valid page must remain indexable")
+
+# Every HTML file: icons, the owner-approved analytics exception, and valid links
 for page in sorted(SITE.rglob("*.html")):
     rel = page.relative_to(SITE)
     h = parse(page)
     if h.links.get("icon") is None or h.links.get("apple-touch-icon") is None: err(f"{rel}: needs a favicon and an apple-touch-icon")
-    if "static.cloudflareinsights.com/beacon.min.js" not in page.read_text(): err(f"{rel}: no Cloudflare Web Analytics beacon")
+    beacon = re.findall(r'<script[^>]+src=[\'"]https://static\.cloudflareinsights\.com/beacon\.min\.js[\'"][^>]*>', page.read_text())
+    if len(beacon) != 1 or 'crossorigin="anonymous"' not in beacon[0]: err(f"{rel}: expected one CORS-enabled analytics beacon")
     for ref in h.refs:
         if not resolves(ref, rel): err(f"{rel}: broken link {ref}")
 

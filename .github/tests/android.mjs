@@ -1,5 +1,5 @@
 // Real Chrome for Android in the emulator, driven over its DevTools socket, with the same checks as Playwright.
-// The workflow forwards the socket to localhost:9222; the emulator reaches this machine at 10.0.2.2.
+// The workflow forwards the socket to localhost:9222; adb reverse exposes the test server on device loopback.
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { PAGES } from './pages.mjs';
@@ -7,7 +7,7 @@ import { visit } from './checks.mjs';
 import { androidVersion } from './android-version.mjs';
 const provenance = await androidVersion();
 
-const base = process.env.ANDROID_BASE ?? 'http://10.0.2.2:8787';
+const base = 'http://site.localhost:8787';
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
 const context = browser.contexts()[0];
 const identity = await context.newPage();

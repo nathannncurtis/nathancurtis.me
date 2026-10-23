@@ -1,0 +1,2 @@
+.st.tiny { width: clamp(70px, 7vw, 110px); opacity: .45; transition: opacity .6s; top: auto; } .st.tiny:hover { opacity: 1; } .st.tiny .cap { opacity: 0; transition: opacity .4s; } .st.tiny:hover .cap { opacity: .7; }
+.404-static-1 { right: 5vw; bottom: 7vh; }

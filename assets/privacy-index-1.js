@@ -1,0 +1,1 @@
+document.getElementById('when').textContent = 'October 18, 2026';
