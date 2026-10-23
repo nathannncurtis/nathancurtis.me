@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { BASE } from './pages.mjs';
 
 // Exercise the actual weather renderer and its WCAG reading surface at five-minute
 // intervals, including both ink transitions. Opacity is checked separately: alpha
@@ -6,7 +7,7 @@ import { test, expect } from '@playwright/test';
 for (const width of [390, 1440]) for (const weather of ['clear', 'overcast', 'fog', 'storm']) {
   test(`homepage reading contrast ${width}px ${weather}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`/?wx=${weather}`);
+    await page.goto(`${BASE}/?wx=${weather}&fast`);
     await page.waitForFunction(() => typeof paint === 'function');
     const minimum = await page.evaluate(() => {
       const luminance = rgb => rgb.map(v => { const c = v / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; }).reduce((s, c, i) => s + c * [.2126, .7152, .0722][i], 0);
