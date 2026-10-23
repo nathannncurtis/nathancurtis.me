@@ -4,7 +4,7 @@ PR 10 acceptance remains **blocked**. CI now fails explicitly when the installed
 
 ## Reproduced image and browser
 
-On 2026-10-22, a disposable API 37 ARM64 Google Play emulator was booted from Google's `arm64-v8a-37.0_r08.zip` archive. The Android SDK repository metadata in `playstore.xml` declares the archive SHA-1 as `ac251e27178d78cffb0b7ee577d79643491a89a6`; the downloaded archive has that exact SHA-1. The extracted `source.properties` says `Pkg.Revision=7`, despite the repository path, URL suffix, and matching archive checksum identifying revision 8. The image reported Android 17 / API 37 and package `com.android.chrome` version `145.0.7632.218`.
+On 2026-10-22, a disposable API 37 ARM64 Google Play emulator was booted from Google's `arm64-v8a-37.0_r08.zip` archive. The Android SDK repository metadata in `playstore.xml` declares the archive SHA-1 as `ac251e27178d78cffb0b7ee577d79643491a89a6`; the downloaded archive has that exact SHA-1. The extracted `source.properties` says `Pkg.Revision=7`, despite the repository path, URL suffix, and matching archive checksum identifying revision 8. The image reported Android 17 / API 37, ABI `arm64-v8a`, fingerprint `google/sdk_gphone64_arm64/emu64a:17/CE2A.260420.051.A2/16418371:user/release-keys`, and package `com.android.chrome` version `145.0.7632.218`.
 
 Google's Android Chrome stable Version History API reported `157.0.8103.14` during the same check. The API 37 guard fixture uses those observed values and fails with `Stale Google Chrome: 145.0.7632.218; current Chrome stable is 157.0.8103.14`. The emulator had no signed-in Google account, and no account setup or update bypass was attempted. No official, unauthenticated route to provision current branded Chrome was established.
 
