@@ -176,8 +176,10 @@ jobs:
         working-directory: .github/tests
         shell: bash
         run: npx playwright install ${{ matrix.browsers }}
+      # apt mirrors can hang; fail fast rather than hold the job for its whole timeout.
       - name: System libraries
         if: runner.os == 'Linux'
+        timeout-minutes: 10
         working-directory: .github/tests
         run: npx playwright install-deps ${{ matrix.browsers }}
       - name: Every page, every browser and device
@@ -269,6 +271,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('.github/tests/package-lock.json') }}
       - name: Chromium
+        timeout-minutes: 10
         working-directory: .github/tests
         run: |
           [ "${{ steps.pw.outputs.cache-hit }}" = true ] || npx playwright install chromium
