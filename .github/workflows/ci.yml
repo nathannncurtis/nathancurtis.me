@@ -39,6 +39,7 @@ jobs:
               - '_headers'
               - 'LICENSE'
               - '.well-known/**'
+              - 'assets/**'
               - 'fonts/**'
               - 'music/**'
               - 'photos/**'
@@ -109,6 +110,7 @@ jobs:
           command -v xmllint >/dev/null || sudo apt-get install -y -qq libxml2-utils
           xmllint --noout _site/sitemap.xml
           python3 .github/scripts/check_site.py _site
+          node .github/tests/analytics-source.mjs
       - name: Everything content.js names exists
         run: node .github/scripts/content.mjs _site
       - name: Scripts parse

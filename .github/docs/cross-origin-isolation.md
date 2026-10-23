@@ -17,9 +17,8 @@ responses. `worker/worker-header.test.mjs` checks that these policies stay align
   be rechecked after deployment.
 - External project links open in new tabs with `rel="noopener"`. Browser coverage
   checks that the new tab has no `window.opener`.
-- The manually embedded Cloudflare beacon has been removed. Managed Cloudflare
-  Analytics configuration remains unverified; its SRI, CORS, delivery, CSP, and
-  COEP behavior are a separate required gate in
+- The existing Cloudflare beacon is retained under the owner's narrow SRI exception.
+  It uses anonymous CORS; its response permits cross-origin loading. See
   [analytics-migration.md](analytics-migration.md).
 
 ## Local and CI evidence
@@ -29,8 +28,7 @@ photograph decode, a music byte-range response, `/sky`, and outbound popup
 behavior in Chromium, Firefox, and WebKit. Focused Chromium passed locally. CI's
 desktop browser projects provide the cross-engine run; the test's production
 headers/www assertion runs only when `PRODUCTION_BASE` is set, and remains blocked
-until the enforcing headers are live. The managed Analytics test likewise remains
-blocked until `MANAGED_ANALYTICS_SRC` points to the verified injected script.
+until the enforcing headers are live. The retained analytics loading test uses the actual Cloudflare source.
 
 Do not merge or deploy this policy while either production gate is unverified.
 After deployment, run with `PRODUCTION_BASE=https://nathancurtis.me` and verify

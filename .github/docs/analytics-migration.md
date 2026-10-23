@@ -1,42 +1,18 @@
-# Analytics integrity migration (deployment gate)
+# Analytics integrity exception
 
-This branch removes manually embedded Cloudflare Analytics. **Do not merge or deploy
-until managed injection is enabled and verified**, unless the owner explicitly
-chooses to stop collecting browser analytics.
+On October 22, 2026 the owner explicitly chose: “Keep analytics carve out an exception.”
 
-Cloudflare's [official FAQ](https://developers.cloudflare.com/web-analytics/faq/)
-states that its manually embedded beacon does not support version pinning and
-cannot safely use SRI. Its [changelog](https://developers.cloudflare.com/web-analytics/changelog/)
-says automatic installation enables SRI by default. Do not hash the mutable URL,
-copy an undocumented versioned URL, or self-host a distribution whose update and
-licensing contract has not been established.
+The existing Cloudflare beacon and site token remain on every page. Only this exact
+external script is exempt from SRI: `https://static.cloudflareinsights.com/beacon.min.js`.
+The URL is mutable and Cloudflare does not support durable manual SRI pinning.
+This is an accepted remaining risk, not a completed integrity migration.
 
-## Deployment gate
+`crossorigin="anonymous"` uses the beacon's CORS response under COEP. Live response
+inspection returned Access-Control-Allow-Origin: * and CORP: cross-origin. Browser
+checks require the real script to load while crossOriginIsolated remains true.
+The source guard rejects additional external scripts; CSP remains restrictive,
+without unsafe-inline or unsafe-eval. The tampered-SRI negative fixture remains.
 
-1. In Cloudflare Web Analytics, inspect the site's existing configuration. Enable
-   managed automatic injection for the proxied site, preserving its existing token.
-   This requires dashboard access; it has not been done by this PR.
-2. Inspect a preview/production HTML response for exactly one injected beacon,
-   containing `integrity` and `crossorigin="anonymous"`. Verify its actual CORS
-   response and successful SRI validation in the browser. Do not print beacon
-   payloads or visitor information.
-3. Verify the managed beacon is allowed by the effective CSP and COEP. Observe a
-   successful analytics delivery using synthetic browser traffic; record only
-   status and endpoint, never the request payload.
-4. Check `/`, `/work`, `/privacy`, `/404.html`, and representative `/status/*`
-   responses. Check both the apex host and the www redirect. If any injection lacks
-   integrity, keep this PR blocked and report it; do not silently disable analytics.
-5. Record the deployment SHA, time, tested responses, and dashboard configuration
-   here before removing the draft/deployment gate.
-
-Cloudflare maintains the injected source and integrity together. CI rejects the
-old manual mutable snippet. The CSP permits only the specific beacon origin and
-analytics delivery endpoint while this migration is pending. Edge request analytics
-are separate from the browser Web Analytics beacon and do not replace its metrics.
-
-## Evidence and remaining access
-
-On October 22, 2026, the source contained manually embedded unversioned beacons on
-all documents. No authenticated Cloudflare dashboard session was available to
-verify the managed-injection configuration. No configuration has been changed and
-no deployment has been made. Production acceptance remains open.
+Managed injection with SRI remains a future improvement requiring Cloudflare Web
+Analytics permissions. Production analytics delivery must be checked after release
+without recording payloads or visitor data.

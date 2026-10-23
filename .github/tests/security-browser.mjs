@@ -1,3 +1,4 @@
+import { stubAnalytics } from './checks.mjs';
 import { chromium, firefox, webkit } from '@playwright/test';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
@@ -10,6 +11,7 @@ export async function verifySecurity(browser, base) {
   const engine = browser.browserType();
   for (const path of paths) {
     const page = await browser.newPage();
+    await stubAnalytics(page);
     const errors = [], violations = [];
     // Wrangler rewrites production hostnames inside local CSP headers; test the
     // policy that the edge will actually serve, including local weather fallback.

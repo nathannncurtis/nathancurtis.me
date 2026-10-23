@@ -42,19 +42,14 @@ test('production apex/www policy and routing', async ({ request }) => {
   expect(new URL(www.headers().location).host).toBe(new URL(apex).host);
 });
 
-test('managed analytics remains compatible with isolation', async ({ page }, info) => {
-  test.skip(!process.env.MANAGED_ANALYTICS_SRC, 'blocked until Cloudflare-managed analytics is enabled and verified');
+test('retained analytics script loads under isolation', async ({ page }, info) => {
   test.skip(!['chromium', 'firefox', 'webkit'].includes(info.project.name), 'desktop analytics coverage');
-  const src = process.env.MANAGED_ANALYTICS_SRC;
-  const scriptRequests = [];
-  page.on('request', request => {
-    if (request.resourceType() === 'script' && request.url() === src) scriptRequests.push(request);
-  });
+  const src = 'https://static.cloudflareinsights.com/beacon.min.js';
+  const loaded = page.waitForResponse(r => r.url() === src && r.status() === 200);
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  await expect.poll(() => scriptRequests.length).toBe(1);
+  await loaded;
   const script = page.locator(`script[src="${src}"]`);
   await expect(script).toHaveCount(1);
-  await expect(script).toHaveAttribute('integrity', /^(sha256|sha384|sha512)-/);
   await expect(script).toHaveAttribute('crossorigin', 'anonymous');
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
 });

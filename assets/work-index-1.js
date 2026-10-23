@@ -106,6 +106,15 @@ entries.forEach((e, i) => {
   e.el = a; e.textEl = a.querySelector('.text');
 });
 
+function syncFigureFocus(fig) {
+  fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1;
+}
+const figureSizes = new ResizeObserver(changes => {
+  for (const change of changes) {
+    const fig = change.target.closest('figure');
+    if (fig) syncFigureFocus(fig);
+  }
+});
 function render(e) {
   const w = e.textEl.clientWidth;
   let n = 0, html = '';
@@ -133,11 +142,20 @@ function render(e) {
     const caption = fig.querySelector('figcaption');
     if (e.sealed) { fig.setAttribute('aria-label', 'Redacted project illustration'); }
     else if (caption) { caption.id = `caption-${entries.indexOf(e)}-${index}`; fig.setAttribute('aria-labelledby', caption.id); }
-    // Native scrolling handles arrows, touch and pointer input. Only actual overflow adds a tab stop.
-    fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1;
+    // WebKit does not consistently scroll focused figures with arrow keys.
+    // Keep touch/pointer scrolling native and handle only horizontal keyboard movement.
+    fig.addEventListener('keydown', event => {
+      if (event.target !== fig || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+          !['ArrowLeft', 'ArrowRight'].includes(event.key) || fig.scrollWidth <= fig.clientWidth + 1) return;
+      event.preventDefault();
+      fig.scrollBy({ left: event.key === 'ArrowRight' ? 40 : -40, behavior: 'instant' });
+    });
+    figureSizes.observe(fig);
+    if (fig.firstElementChild) figureSizes.observe(fig.firstElementChild);
+    syncFigureFocus(fig);
   });
   if (e.diagram) { drawDiagram(); hotNow = new Map(); litNow = new Set(); }
-  e.textEl.querySelectorAll('figure').forEach(fig => { fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1; });
+  e.textEl.querySelectorAll('figure').forEach(syncFigureFocus);
 }
 
 const diagram = (() => {
@@ -237,7 +255,7 @@ entries.forEach(e => io.observe(e.el));
 new IntersectionObserver(es => flow(es[0].isIntersecting), { threshold: 0.25 }).observe(entries[0].el);
 
 let rw = innerWidth;
-addEventListener('resize', () => { if (innerWidth === rw) return; rw = innerWidth; const on = !!raf; entries.forEach(render); flow(on); });
+addEventListener('resize', () => { if (innerWidth === rw) return; rw = innerWidth; document.querySelectorAll('figure').forEach(syncFigureFocus); });
 
 const fine = matchMedia('(pointer: fine)').matches;
 const dark = matchMedia('(prefers-color-scheme: dark)');

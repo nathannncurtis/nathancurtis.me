@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { BASE } from './pages.mjs';
+import { stubAnalytics } from './checks.mjs';
+test.beforeEach(async ({ page }) => { await stubAnalytics(page); });
 
 for (const colorScheme of ['light', 'dark']) for (const width of [390, 820, 1440]) {
   test(`work readable ${colorScheme} ${width}`, async ({ page }) => {

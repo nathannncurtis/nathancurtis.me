@@ -223,3 +223,5 @@
     #wxdesk .live { opacity: .6; font-size: 11px; margin-top: 6px; }
     #wxdesk.min > :not(.top) { display: none; } #wxdesk .top { display: flex; justify-content: space-between; } #wxdesk .top span { cursor: pointer; opacity: .6; }
   
+
+#rail b[data-l]::after { background: var(--paper); box-shadow: 0 0 0 2px var(--paper); }
