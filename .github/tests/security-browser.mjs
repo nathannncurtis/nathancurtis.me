@@ -24,6 +24,7 @@ export async function verifySecurity(browser, base) {
     await page.exposeFunction('recordViolation', v => violations.push(v));
     await page.addInitScript(() => document.addEventListener('securitypolicyviolation', e => window.recordViolation({ directive: e.effectiveDirective, source: e.blockedURI })));
     await page.goto(base + path, { waitUntil: 'networkidle' });
+    if (path === '/') await page.locator('.po .ln').first().waitFor({ state: 'attached' });
     await page.waitForTimeout(500);
     assert.deepEqual(errors, [], `${engine.name()} ${path}: script failures`);
     assert.deepEqual(violations, [], `${engine.name()} ${path}: unexpected CSP violations`);

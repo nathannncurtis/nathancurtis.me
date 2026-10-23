@@ -33,7 +33,7 @@ const RUNS = Number(process.env.LH_RUNS ?? 3);
 
 const out = new URL('../../lighthouse/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
-const chrome = await launcher.launch({ chromePath: chromium.executablePath(), chromeFlags: ['--headless=new', '--no-sandbox', '--host-resolver-rules=MAP site.test 127.0.0.1'] });
+const chrome = await launcher.launch({ chromePath: chromium.executablePath(), chromeFlags: ['--headless=new', '--no-sandbox', '--host-resolver-rules=MAP site.localhost 127.0.0.1'] });
 const median = xs => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 const rows = [];
 let bad = 0;

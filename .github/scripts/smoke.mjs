@@ -3,9 +3,9 @@
 import { chromium } from 'playwright';
 
 // A name that isn't localhost, so the page calls this Worker's /sky instead of borrowing the live one.
-const base = 'http://site.test:8787';
+const base = 'http://site.localhost:8787';
 const pages = ['/', '/work', '/privacy', '/no-such-page', ...['200', '301', '403', '410', '500', '503'].map(s => `/status/${s}.html`)];
-const browser = await chromium.launch({ args: ['--host-resolver-rules=MAP site.test 127.0.0.1'] });
+const browser = await chromium.launch({ args: ['--host-resolver-rules=MAP site.localhost 127.0.0.1'] });
 let bad = 0;
 for (const path of pages) {
   const page = await browser.newPage();

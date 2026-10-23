@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Inside the Android emulator: Chrome without its first-run screens, its DevTools socket on localhost:9222,
-# then the page checks. wrangler dev is already listening on this machine, which the emulator sees as 10.0.2.2.
+# then the page checks. Reverse forwarding exposes the host on a trustworthy loopback origin.
 set -euo pipefail
 adb wait-for-device
 until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; do sleep 2; done
+adb reverse tcp:8787 tcp:8787
 # A debug app reads /data/local/tmp/chrome-command-line, even on a device that isn't rooted.
 adb shell am set-debug-app --persistent com.android.chrome
 adb shell "echo '_ --disable-fre --no-default-browser-check --no-first-run --disable-features=SigninPromo' > /data/local/tmp/chrome-command-line"
