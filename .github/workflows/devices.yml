@@ -1,0 +1,24 @@
+name: devices
+
+# Physical phones and tablets on BrowserStack, run by hand from the Actions tab. Not part of CI:
+# the free trial is 100 minutes in all, and a used-up trial only warns.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browserstack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Real devices
+        if: env.BROWSERSTACK_ACCESS_KEY != ''
+        working-directory: .github/tests
+        run: node browserstack.mjs

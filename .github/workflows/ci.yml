@@ -22,6 +22,7 @@ jobs:
     outputs:
       site: ${{ steps.f.outputs.site }}
       worker: ${{ steps.f.outputs.worker }}
+      served: ${{ steps.f.outputs.site == 'true' || steps.f.outputs.worker == 'true' || steps.f.outputs.tests == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -44,15 +45,18 @@ jobs:
               - 'privacy/**'
               - 'status/**'
               - 'work/**'
-              - '.zap/**'
               - '.github/scripts/**'
               - '.github/workflows/ci.yml'
             worker:
               - 'worker/**'
               - 'wrangler.jsonc'
               - '_headers'
-              - '.zap/**'
               - '.github/scripts/assemble.sh'
+              - '.github/workflows/ci.yml'
+            tests:
+              - '.github/tests/**'
+              - '.github/actions/**'
+              - '.zap/**'
               - '.github/workflows/ci.yml'
 
   rules:
@@ -100,7 +104,7 @@ jobs:
           node-version: '24'
       - name: Assemble the site
         run: ./.github/scripts/assemble.sh
-      - name: Heads, icons, beacon, sitemap, robots, security.txt, CSP
+      - name: Heads, icons, beacon, sitemap, robots, security.txt, CSP coverage
         run: python3 .github/scripts/check_site.py _site
       - name: Everything content.js names exists
         run: node .github/scripts/content.mjs _site
@@ -113,76 +117,246 @@ jobs:
 
   worker:
     needs: changes
-    if: needs.changes.outputs.worker == 'true'
+    if: needs.changes.outputs.served == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-      - name: Range requests
-        run: node worker/range.test.mjs
-      - name: Assemble the site
-        run: ./.github/scripts/assemble.sh
-      # The same wrangler deploy.yml pins; --dry-run builds and checks the config, uploads nothing.
-      - name: Builds for Cloudflare
-        run: npx -y wrangler@4.151.2 deploy --dry-run --outdir "$RUNNER_TEMP/worker"
-
-  browser:
-    needs: changes
-    if: needs.changes.outputs.site == 'true' || needs.changes.outputs.worker == 'true'
-    # Playwright's Chromium builds stop at 24.04; ubuntu-latest has moved past it.
-    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: ./.github/actions/serve
         with:
-          node-version: '24'
-      - name: Assemble the site
-        run: ./.github/scripts/assemble.sh
-      - name: Chromium
-        run: |
-          npm i --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
-      - name: Every page loads without errors
-        run: |
-          npx -y wrangler@4.151.2 dev --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
-          for i in $(seq 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
-          node .github/scripts/smoke.mjs || { cat "$RUNNER_TEMP/wrangler.log"; exit 1; }
+          start: 'false'
+      - name: Range requests
+        run: node worker/range.test.mjs
+      - name: Fuzz byte ranges and /sky
+        working-directory: .github/tests
+        env:
+          FUZZ_RUNS: '20000'
+        run: node worker.fuzz.mjs
+      # The wrangler deploy.yml pins; --dry-run builds and checks the config and uploads nothing.
+      - name: Builds for Cloudflare
+        run: node .github/tests/node_modules/wrangler/bin/wrangler.js deploy --dry-run --outdir "$RUNNER_TEMP/worker"
 
-  zap-site:
+  browsers:
     needs: changes
-    if: needs.changes.outputs.site == 'true' || needs.changes.outputs.worker == 'true'
+    if: needs.changes.outputs.served == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            projects: --project=chromium --project=firefox --project=webkit --project=headers --project=pixel-7 --project=galaxy-s9 --project=iphone-se --project=iphone-15 --project=iphone-15-landscape --project=ipad --project=firefox-phone
+            browsers: chromium firefox webkit
+          - os: macos-latest
+            projects: --project=webkit --project=chromium --project=firefox --project=iphone-15 --project=ipad
+            browsers: chromium firefox webkit
+          - os: windows-latest
+            projects: --project=edge --project=chromium --project=firefox --project=webkit
+            browsers: chromium firefox webkit
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: Browser cache
+        id: pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~/AppData/Local/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('.github/tests/package-lock.json') }}
+      - name: Browsers
+        if: steps.pw.outputs.cache-hit != 'true'
+        working-directory: .github/tests
+        shell: bash
+        run: npx playwright install ${{ matrix.browsers }}
+      - name: System libraries
+        if: runner.os == 'Linux'
+        working-directory: .github/tests
+        run: npx playwright install-deps ${{ matrix.browsers }}
+      - name: Every page, every browser and device
+        working-directory: .github/tests
+        shell: bash
+        run: npx playwright test ${{ matrix.projects }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browsers-${{ matrix.os }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
+  safari:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Let safaridriver drive Safari
+        run: sudo safaridriver --enable
+      - name: Desktop Safari
+        working-directory: .github/tests
+        run: node safari.mjs desktop
+      - name: Boot an iPhone simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          echo "Booting $(xcrun simctl list devices | grep "$udid")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          # Safari's Remote Automation switch, which safaridriver needs on iOS.
+          xcrun simctl spawn "$udid" defaults write com.apple.mobilesafari RemoteAutomationEnabled -bool true
+          xcrun simctl spawn "$udid" defaults write com.apple.WebKit.WebContent RemoteAutomationEnabled -bool true
+      - name: Safari on iOS
+        working-directory: .github/tests
+        run: node safari.mjs ios
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: safari
+          path: test-results
+          if-no-files-found: ignore
+
+  android:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Hardware acceleration for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Chrome for Android, in the emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: playstore
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./.github/scripts/android.sh
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android
+          path: test-results
+          if-no-files-found: ignore
+
+  lighthouse:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: ./.github/actions/serve
+      - name: Browser cache
+        id: pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          node-version: '24'
-      # wrangler dev serves the files with _headers applied and the Worker in front, as Cloudflare does.
-      - name: Serve the site here
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('.github/tests/package-lock.json') }}
+      - name: Chromium
+        working-directory: .github/tests
         run: |
-          ./.github/scripts/assemble.sh
-          npx -y wrangler@4.151.2 dev --ip 0.0.0.0 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
-          for i in $(seq 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
-      - uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+          [ "${{ steps.pw.outputs.cache-hit }}" = true ] || npx playwright install chromium
+          npx playwright install-deps chromium
+      - name: Phone and desktop scores and budgets
+        working-directory: .github/tests
+        run: node lighthouse.mjs
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          target: http://localhost:8787
+          name: lighthouse
+          path: lighthouse
+          if-no-files-found: ignore
+
+  scan:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+        with:
+          start: 'false'
+      - name: CSP Evaluator
+        working-directory: .github/tests
+        run: node csp.mjs
+      - name: Retire.js, known-vulnerable JavaScript in the site
+        working-directory: .github/tests
+        run: npx retire --path ../../_site --severity low --exitwith 1
+      - name: Semgrep, JavaScript and DOM XSS rules
+        run: |
+          pip install --quiet semgrep==1.181.0
+          semgrep scan --metrics=off --error --config p/javascript --config p/xss --config p/security-audit \
+            --exclude .github/tests/node_modules --exclude _site .
+      - name: Known vulnerabilities in the test tools
+        working-directory: .github/tests
+        run: |
+          npm audit --audit-level=high
+          v=2.7.0
+          curl -sSL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/v$v/osv-scanner_linux_amd64"
+          echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  osv-scanner" | sha256sum -c -
+          chmod +x osv-scanner
+          ./osv-scanner scan source --lockfile package-lock.json
+
+  zap:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      # The full scan spiders every page and then attacks each request (injection, traversal, header abuse).
+      - uses: zaproxy/action-full-scan@3c58388149901b9a03b7718852c5ba889646c27c # v0.13.0
+        with:
+          target: http://127.0.0.1:8787
           rules_file_name: .zap/rules.tsv
           allow_issue_writing: false
           fail_action: false
-          artifact_name: zap-site
+          artifact_name: zap
       - name: Fail on High
         run: |
-          n=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)
           jq -r '.site[].alerts[] | "\(.riskdesc) \(.alertRef) \(.name)"' report_json.json
-          [ "$n" -eq 0 ]
+          [ "$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)" -eq 0 ]
+
+  nuclei:
+    needs: changes
+    if: needs.changes.outputs.served == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/serve
+      - name: Nuclei and its templates
+        run: |
+          v=3.11.1
+          curl -sSL -o nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v$v/nuclei_${v}_linux_amd64.zip"
+          echo "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6  nuclei.zip" | sha256sum -c -
+          unzip -q nuclei.zip nuclei
+          git clone -q --depth 1 --branch v10.5.0 https://github.com/projectdiscovery/nuclei-templates.git templates
+          [ "$(git -C templates rev-parse HEAD)" = f8b8b8dcd70d93826c3767e1829ef8243af9f03b ]
+      - name: Scan, fail on High or Critical
+        run: |
+          touch nuclei.jsonl
+          ./nuclei -u http://127.0.0.1:8787 -t templates/http -disable-update-check -no-color -silent -jsonl -o nuclei.jsonl || true
+          jq -r '"\(.info.severity) \(."template-id") \(."matched-at")"' nuclei.jsonl | sort -u
+          [ "$(jq -s '[.[] | select(.info.severity == "high" or .info.severity == "critical")] | length' nuclei.jsonl)" -eq 0 ]
 
   ci-ok:
-    needs: [changes, rules, site, worker, browser, zap-site]
+    needs: [changes, rules, site, worker, browsers, safari, android, lighthouse, scan, zap, nuclei]
     if: always()
     runs-on: ubuntu-latest
     steps:

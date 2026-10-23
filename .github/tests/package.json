@@ -1,0 +1,21 @@
+{
+  "name": "nathancurtis-me-tests",
+  "private": true,
+  "type": "module",
+  "description": "CI only: browsers, devices, Lighthouse and scans for nathancurtis.me. Nothing here is part of the site.",
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
+    "browserstack-local": "1.5.16",
+    "csp_evaluator": "1.1.8",
+    "fast-check": "4.10.2",
+    "lighthouse": "13.5.0",
+    "retire": "6.1.0",
+    "selenium-webdriver": "4.51.0",
+    "wrangler": "4.151.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261019.1": true
+  }
+}
