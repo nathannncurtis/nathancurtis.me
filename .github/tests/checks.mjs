@@ -12,12 +12,16 @@ const ACCEPTED_AXE = [
   { rule: 'scrollable-region-focusable', path: '/work', target: /figure|\.fig/ },
 ];
 
-export async function watch(page, base, expect404 = false) {
-  const problems = [];
+export async function stubAnalytics(page) {
   // The analytics beacon only accepts the real site's origin; answer it here so it stays quiet.
   await page.route(/cloudflareinsights\.com/, r => r.fulfill(/beacon/.test(r.request().url())
     ? { status: 200, contentType: 'application/javascript', body: '' }
     : { status: 204, headers: { 'access-control-allow-origin': '*' } }));
+}
+
+export async function watch(page, base, expect404 = false) {
+  const problems = [];
+  await stubAnalytics(page);
   page.on('pageerror', e => problems.push(`script error: ${e.message}`));
   page.on('console', m => {
     if (m.type() !== 'error') return;
