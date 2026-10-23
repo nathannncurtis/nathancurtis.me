@@ -1,0 +1,8 @@
+# Version bumps once a month, one grouped PR. Security fixes still come as they appear.
+# The site has no package manifests; the actions are its only dependencies.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups: { actions: { patterns: ["*"] } }

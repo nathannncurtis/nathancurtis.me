@@ -1,6 +1,6 @@
-name: CI
+name: ci
 
-# Every pull request and every push to main: the launch checklist, the Worker, and each page in a real browser.
+# Every pull request and every push to main. Nothing here deploys; deploy.yml does that.
 on:
   pull_request:
   push:
@@ -9,52 +9,183 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.f.outputs.site }}
+      worker: ${{ steps.f.outputs.worker }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: f
         with:
-          node-version: 24
+          filters: |
+            site:
+              - '*.html'
+              - '*.js'
+              - '*.txt'
+              - '*.png'
+              - '*.ico'
+              - '*.svg'
+              - '_headers'
+              - 'LICENSE'
+              - '.well-known/**'
+              - 'fonts/**'
+              - 'music/**'
+              - 'photos/**'
+              - 'privacy/**'
+              - 'status/**'
+              - 'work/**'
+              - '.zap/**'
+              - '.github/scripts/**'
+              - '.github/workflows/ci.yml'
+            worker:
+              - 'worker/**'
+              - 'wrangler.jsonc'
+              - '_headers'
+              - '.zap/**'
+              - '.github/scripts/assemble.sh'
+              - '.github/workflows/ci.yml'
 
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Range
+        id: range
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then BASE="$HEAD~1"; fi
+          echo "range=$BASE..$HEAD" >> "$GITHUB_OUTPUT"
+      - name: Workflow rules
+        run: bash .github/scripts/rules.sh
+      - name: Secrets
+        run: |
+          v=8.30.1
+          curl -sSL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_linux_x64.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tgz" | sha256sum -c -
+          mkdir gl && tar -xzf gl.tgz -C gl
+          ./gl/gitleaks git --redact --no-banner --log-opts="${{ steps.range.outputs.range }}" .
+      - name: Shell scripts
+        run: |
+          v=0.11.0
+          curl -sSL -o sc.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v$v/shellcheck-v$v.linux.x86_64.tar.xz"
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  sc.tar.xz" | sha256sum -c -
+          tar -xJf sc.tar.xz
+          git ls-files -z '*.sh' | xargs -0 "./shellcheck-v$v/shellcheck" -S warning
+
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
       - name: Assemble the site
-        run: ./.github/ci/assemble.sh
-
-      - name: Heads, files, links, sitemap, robots, security.txt, CSP
-        run: python3 .github/ci/check_site.py _site
-
+        run: ./.github/scripts/assemble.sh
+      - name: Heads, icons, beacon, sitemap, robots, security.txt, CSP
+        run: python3 .github/scripts/check_site.py _site
       - name: Everything content.js names exists
-        run: node .github/ci/content.mjs _site
-
+        run: node .github/scripts/content.mjs _site
       - name: Scripts parse
-        run: for f in $(git ls-files '*.js' '*.mjs'); do node --check "$f"; done
+        run: git ls-files -z '*.js' '*.mjs' | xargs -0 -n1 node --check
+      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --index-files index.html --fallback-extensions html --root-dir ${{ github.workspace }}/_site '_site/**/*.html'
+          fail: true
 
-      - name: Worker range requests
+  worker:
+    needs: changes
+    if: needs.changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Range requests
         run: node worker/range.test.mjs
-
-      - name: Worker builds for Cloudflare
+      - name: Assemble the site
+        run: ./.github/scripts/assemble.sh
+      # The same wrangler deploy.yml pins; --dry-run builds and checks the config, uploads nothing.
+      - name: Builds for Cloudflare
         run: npx -y wrangler@4.151.2 deploy --dry-run --outdir "$RUNNER_TEMP/worker"
 
   browser:
+    needs: changes
+    if: needs.changes.outputs.site == 'true' || needs.changes.outputs.worker == 'true'
     # Playwright's Chromium builds stop at 24.04; ubuntu-latest has moved past it.
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
-
+          node-version: '24'
       - name: Assemble the site
-        run: ./.github/ci/assemble.sh
-
-      - name: Install Chromium
+        run: ./.github/scripts/assemble.sh
+      - name: Chromium
         run: |
           npm i --no-save --no-package-lock playwright@1.56.1
           npx playwright install --with-deps chromium
-
       - name: Every page loads without errors
         run: |
           npx -y wrangler@4.151.2 dev --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
-          node .github/ci/smoke.mjs || { cat "$RUNNER_TEMP/wrangler.log"; exit 1; }
+          for i in $(seq 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
+          node .github/scripts/smoke.mjs || { cat "$RUNNER_TEMP/wrangler.log"; exit 1; }
+
+  zap-site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true' || needs.changes.outputs.worker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      # wrangler dev serves the files with _headers applied and the Worker in front, as Cloudflare does.
+      - name: Serve the site here
+        run: |
+          ./.github/scripts/assemble.sh
+          npx -y wrangler@4.151.2 dev --ip 0.0.0.0 --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
+          for i in $(seq 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
+      - uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: http://localhost:8787
+          rules_file_name: .zap/rules.tsv
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-site
+      - name: Fail on High
+        run: |
+          n=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' report_json.json)
+          jq -r '.site[].alerts[] | "\(.riskdesc) \(.alertRef) \(.name)"' report_json.json
+          [ "$n" -eq 0 ]
+
+  ci-ok:
+    needs: [changes, rules, site, worker, browser, zap-site]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job passed or was skipped
+        run: |
+          [ "${{ contains(needs.*.result, 'failure') }}" = false ] && [ "${{ contains(needs.*.result, 'cancelled') }}" = false ]

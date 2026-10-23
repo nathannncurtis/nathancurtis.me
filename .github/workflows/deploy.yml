@@ -1,9 +1,15 @@
 name: Deploy
 
 # Push to main and the site goes to Cloudflare: the files, plus the small Worker behind /sky.
+# CI, scan settings and the README are not part of the site, so changing only those deploys nothing.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/**'
+      - '.zap/**'
+      - '.gitleaks.toml'
+      - 'README.md'
   workflow_dispatch:
 
 permissions:
@@ -20,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Assemble and check the site
-        run: ./.github/ci/assemble.sh
+        run: ./.github/scripts/assemble.sh
 
       - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
