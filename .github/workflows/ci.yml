@@ -79,14 +79,14 @@ jobs:
         run: bash .github/scripts/rules.sh
       - name: Secrets
         run: |
-          v=8.30.1
+          tag=v8.30.1; v=${tag#v}
           curl -sSL -o gl.tgz "https://github.com/gitleaks/gitleaks/releases/download/v$v/gitleaks_${v}_linux_x64.tar.gz"
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tgz" | sha256sum -c -
           mkdir gl && tar -xzf gl.tgz -C gl
           ./gl/gitleaks git --redact --no-banner --log-opts="${{ steps.range.outputs.range }}" .
       - name: Shell scripts
         run: |
-          v=0.11.0
+          tag=v0.11.0; v=${tag#v}
           curl -sSL -o sc.tar.xz "https://github.com/koalaman/shellcheck/releases/download/v$v/shellcheck-v$v.linux.x86_64.tar.xz"
           echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  sc.tar.xz" | sha256sum -c -
           tar -xJf sc.tar.xz
@@ -311,7 +311,7 @@ jobs:
         working-directory: .github/tests
         run: |
           npm audit --audit-level=high
-          v=2.7.0
+          tag=v2.7.0; v=${tag#v}
           curl -sSL -o osv-scanner "https://github.com/google/osv-scanner/releases/download/v$v/osv-scanner_linux_amd64"
           echo "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b  osv-scanner" | sha256sum -c -
           chmod +x osv-scanner
@@ -348,7 +348,7 @@ jobs:
       - uses: ./.github/actions/serve
       - name: Nuclei and its templates
         run: |
-          v=3.11.1
+          tag=v3.11.1; v=${tag#v}
           curl -sSL -o nuclei.zip "https://github.com/projectdiscovery/nuclei/releases/download/v$v/nuclei_${v}_linux_amd64.zip"
           echo "ea63d4ae232808cd7c6bc00d0142428e231fab59dae01042246097d195835ab6  nuclei.zip" | sha256sum -c -
           unzip -q nuclei.zip nuclei
