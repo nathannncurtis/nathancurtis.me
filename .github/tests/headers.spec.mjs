@@ -3,6 +3,9 @@ import { test, expect } from '@playwright/test';
 import { BASE } from './pages.mjs';
 
 const EVERY = {
+  'cross-origin-opener-policy': /^same-origin$/,
+  'cross-origin-embedder-policy': /^require-corp$/,
+  'cross-origin-resource-policy': /^same-origin$/,
   'strict-transport-security': /max-age=31536000; includeSubDomains/,
   'x-content-type-options': /^nosniff$/,
   'referrer-policy': /^strict-origin-when-cross-origin$/,
@@ -11,7 +14,7 @@ const EVERY = {
 };
 const LONG = { 'cache-control': /max-age=31536000, immutable/ };
 
-for (const [path, extra] of [['/', {}], ['/work', {}], ['/no-such-page', {}], ['/fonts/fonts.css', LONG], ['/photos/thumb/cathedral.webp', LONG], ['/music/her.mp3', LONG]]) {
+for (const [path, extra] of [['/', {}], ['/work', {}], ['/no-such-page', {}], ['/sky', {}], ['/fonts/fonts.css', LONG], ['/photos/thumb/cathedral.webp', LONG], ['/music/her.mp3', LONG]]) {
   test(`headers on ${path}`, async ({ request }) => {
     const res = await request.get(BASE + path, { maxRedirects: 0 });
     const h = res.headers();

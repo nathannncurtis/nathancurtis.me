@@ -129,7 +129,9 @@ jobs:
         with:
           start: 'false'
       - name: Range requests
-        run: node worker/range.test.mjs
+        run: |
+          node worker/range.test.mjs
+          node worker/worker-header.test.mjs
       - name: Fuzz byte ranges and /sky
         working-directory: .github/tests
         env:

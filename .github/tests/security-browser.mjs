@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 const policy = readFileSync(new URL('../../_headers', import.meta.url), 'utf8').split('\n').find(l => l.includes('Content-Security-Policy:')).split('Content-Security-Policy:')[1].trim();
 assert(!policy.includes('unsafe-inline'));
-const paths = ['/', '/work/', '/privacy/', '/404.html', '/status/200.html', '/status/403.html', '/status/410.html', '/status/500.html', '/status/503.html'];
+const paths = ['/', '/work/', '/privacy/', '/404.html', '/status/200.html', '/status/301.html', '/status/403.html', '/status/410.html', '/status/500.html', '/status/503.html'];
 export async function verifySecurity(browser, base) {
   const engine = browser.browserType();
   for (const path of paths) {

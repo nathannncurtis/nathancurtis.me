@@ -1,3 +1,1 @@
 # id	IGNORE|WARN|FAIL	name. One line of reason above each accepted rule.
-# Cross-origin isolation (COOP/COEP/CORP) is for pages that need SharedArrayBuffer and the like; this site uses none.
-90004	IGNORE	Cross-Origin policy headers (COEP, COOP, CORP)
