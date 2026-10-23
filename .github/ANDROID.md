@@ -1,6 +1,6 @@
 # Android Chrome coverage status
 
-PR 10 acceptance remains **blocked**. CI now fails explicitly when the installed browser is older than the official Android Chrome stable major, when the Android API differs from the job's declared API, or when a Chromium package is passed off as Google Chrome. This prevents a stale result from being reported as current coverage; it does not provision or update Chrome.
+PR 10 acceptance remains **blocked**. CI now fails explicitly when any of the installed Chrome version's four numeric components places it below official Android Chrome stable, when the Android API differs from the job's declared API, or when a Chromium package is passed off as Google Chrome. Official version lookup errors and malformed version data fail closed. This prevents a stale result from being reported as current coverage; it does not provision or update Chrome.
 
 ## Reproduced image and browser
 

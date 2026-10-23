@@ -19,7 +19,9 @@ export async function androidVersion({ adb = (...args) => execFileSync(process.e
   writeArtifact(info);
   console.log('Android browser provenance:', JSON.stringify(info));
   if (info.api !== expectedApi) throw Error(`Android API ${info.api}, expected ${expectedApi}`);
-  if (Number(version.split('.')[0]) < Number(stable.split('.')[0])) throw Error(`Stale ${info.product}: ${version}; current Chrome stable is ${stable}. See .github/ANDROID.md. No legacy exemption is accepted.`);
+  const installed = version.split('.').map(Number), current = stable.split('.').map(Number);
+  if (installed.some((part, i) => part < current[i] && installed.slice(0, i).every((prior, j) => prior === current[j])))
+    throw Error(`Stale ${info.product}: ${version}; current Chrome stable is ${stable}. See .github/ANDROID.md. No legacy exemption is accepted.`);
   return info;
 }
 if (process.argv[1]?.endsWith('/android-version.mjs')) await androidVersion();

@@ -40,6 +40,11 @@ test('rejects a stale official Chrome version', async () => {
   await assert.rejects(f.run(), /Stale Google Chrome: 145\.0\.7632\.218; current Chrome stable is 157\.0\.8103\.14/);
 });
 
+test('rejects a Chrome patch behind stable even when the major matches', async () => {
+  const f = fixture({ version: '157.0.8103.1' });
+  await assert.rejects(f.run(), /Stale Google Chrome: 157\.0\.8103\.1; current Chrome stable is 157\.0\.8103\.14/);
+});
+
 test('the API 37 fixture still rejects the observed bundled Chrome 145 against stable 157', async () => {
   const f = fixture({ version: '145.0.7632.218', api: '37', abi: 'arm64-v8a', build: 'google/sdk_gphone64_arm64/emu64a:17/CE2A.260420.051.A2/16418371:user/release-keys' });
   await assert.rejects(f.run({ expectedApi: '37' }), /Stale Google Chrome: 145\.0\.7632\.218; current Chrome stable is 157\.0\.8103\.14/);
@@ -66,4 +71,14 @@ test('rejects an unexpected browser package', async () => {
   f.withPackage('com.example.browser');
   try { await assert.rejects(f.run(), /Unexpected browser package com\.example\.browser/); }
   finally { f.cleanup(); }
+});
+
+test('fails closed when official Version History is unavailable', async () => {
+  const f = fixture();
+  await assert.rejects(f.run({ fetchStable: async () => ({ ok: false, status: 503 }) }), /Official Chrome version lookup failed: 503/);
+});
+
+test('fails closed when official stable metadata is malformed', async () => {
+  const f = fixture();
+  await assert.rejects(f.run({ fetchStable: async () => ({ ok: true, json: async () => ({ versions: [] }) }) }), /Invalid official Chrome stable version/);
 });
