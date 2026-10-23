@@ -1,0 +1,59 @@
+name: CI
+
+# Every pull request and every push to main: the launch checklist, the Worker, and each page in a real browser.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Assemble the site
+        run: ./.github/ci/assemble.sh
+
+      - name: Heads, files, links, sitemap, robots, security.txt, CSP
+        run: python3 .github/ci/check_site.py _site
+
+      - name: Everything content.js names exists
+        run: node .github/ci/content.mjs _site
+
+      - name: Scripts parse
+        run: for f in $(git ls-files '*.js' '*.mjs'); do node --check "$f"; done
+
+      - name: Worker range requests
+        run: node worker/range.test.mjs
+
+      - name: Worker builds for Cloudflare
+        run: npx -y wrangler@4.151.2 deploy --dry-run --outdir "$RUNNER_TEMP/worker"
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Assemble the site
+        run: ./.github/ci/assemble.sh
+
+      - name: Install Chromium
+        run: |
+          npm i --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Every page loads without errors
+        run: |
+          npx -y wrangler@4.151.2 dev --port 8787 > "$RUNNER_TEMP/wrangler.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
+          node .github/ci/smoke.mjs http://localhost:8787 || { cat "$RUNNER_TEMP/wrangler.log"; exit 1; }
