@@ -13,8 +13,15 @@ const BREATHE = true; // slow drift of the aurora distortion (set via JS, thrott
 // so toolbars collapsing, a keyboard or a window resize can never move the time or the zoom.
 let SH = innerHeight, SW = innerWidth;
 const vh = () => SH;
-const phone = mobile.matches, LAZY = phone ? ' loading="lazy"' : '';
-const small = p => phone ? p.thumb : p.src; // a phone shows these well under 600px wide
+const phone = mobile.matches;
+// Image dimensions are measured from the immutable assets (width, height, thumbnail width).
+const photoDimensions = {"IMG_0192":[1200,1600,600],"IMG_0637":[1200,1600,600],"IMG_0645":[1200,1600,600],"IMG_0680":[1200,1600,600],"IMG_0681":[1600,1200,600],"IMG_0685":[1600,1200,600],"IMG_0705":[1200,1600,600],"IMG_0711":[1200,1600,600],"IMG_0714":[1200,1600,600],"IMG_0715":[1200,1600,600],"IMG_0748":[1200,1600,600],"IMG_0758":[1600,1200,600],"IMG_0764":[1600,983,600],"IMG_0766":[1600,1200,600],"IMG_0770":[1600,1200,600],"IMG_0788":[1200,1600,600],"IMG_0828":[1200,1600,600],"IMG_0858":[1200,1600,600],"IMG_0884":[1200,1600,600],"IMG_0889":[1600,1200,600],"IMG_0947":[1200,1600,600],"IMG_0956":[1200,1600,600],"IMG_0961":[1200,1600,600],"IMG_0963":[1200,1600,600],"IMG_0964":[1200,1600,600],"IMG_1047":[1600,1200,600],"IMG_1051":[1200,1600,600],"IMG_1053":[1200,1600,600],"IMG_7369":[1200,1600,600],"IMG_7373":[1200,1600,600],"IMG_7376":[1200,1600,600],"IMG_8040":[1600,669,600],"IMG_8044":[1600,1200,600],"IMG_8076":[1600,1200,600],"IMG_8205":[1200,1600,600],"IMG_8206":[1200,1600,600],"IMG_8209":[1200,1600,600],"IMG_9208":[1200,1600,600],"IMG_9553":[1200,1600,600],"PANO_20170717_062243-02":[1600,378,1000],"PANO_20170719_133054":[1600,328,1000],"cathedral":[1800,1350,600],"green-tide":[1350,1800,600],"lone-spruce":[1800,1350,600],"nightwatch":[1350,1800,600],"single-thread":[1350,1800,600],"slow-turning":[1350,1800,600]};
+// Browsers select once for the
+// rendered slot and DPR; the lightbox still deliberately loads the original.
+const photoImg = (p, cls = '', sizes = '(max-width: 760px) 86vw, 70vw') => {
+  const [width, height, thumbWidth] = photoDimensions[p.src.split('/').pop().replace('.jpg', '')];
+  return `<img src="${p.thumb}" srcset="${p.thumb} ${thumbWidth}w, ${p.src} ${width}w" sizes="${sizes}" width="${width}" height="${height}" alt="${p.title}" class="${cls}" loading="lazy" decoding="async">`;
+};
 
 const ZEN = [[0,'#05060d'],[4,'#070a18'],[5.5,'#1c2240'],[6.5,'#6f7fa6'],[7.5,'#a9bbd6'],[10,'#bfd0e4'],[12,'#c4d6ea'],[15,'#bdcbdc'],[17.5,'#8f8ea8'],[18.6,'#4b3f63'],[19.6,'#1a1a33'],[21,'#0a0c1b'],[24,'#05060d']];
 const HOR = [[0,'#0a0c18'],[4,'#0d1022'],[5.5,'#5a3f4a'],[6.3,'#d9955f'],[7.5,'#e6cfae'],[10,'#e4e9ec'],[12,'#eceff0'],[15,'#e8ddcb'],[17.5,'#dfa672'],[18.6,'#a85a45'],[19.6,'#4c3550'],[21,'#141628'],[24,'#0a0c18']];
@@ -73,8 +80,8 @@ for (const [kind, key, hour] of ORDER) {
     const f = document.createElement('figure');
     f.className = kind + ' hold';
     f.style.setProperty('--ar', p.aspect);
-    if (kind === 'win') f.innerHTML = `<div class="frame sh"><img src="${p.src}" alt="${p.title}" class="ex"${LAZY}></div>${capHtml(p)}`;
-    else f.innerHTML = `<img src="${p.src}" alt="${p.title}" class="ex sh"${LAZY}>${capHtml(p)}`;
+    if (kind === 'win') f.innerHTML = `<div class="frame sh">${photoImg(p, 'ex')}</div>${capHtml(p)}`;
+    else f.innerHTML = `${photoImg(p, 'ex sh')}${capHtml(p)}`;
     if (kind !== 'win') addPhoto(p, f);
     stage(hour, kind, f, kind === 'win' ? (key === 'red-rock-road' ? 170 : 260) : 170).p = p;
   } else if (kind === 'st') {
@@ -87,7 +94,7 @@ for (const [kind, key, hour] of ORDER) {
     f.style.setProperty('--fd', (12 + (n % 4) * 3) + 's'); f.style.setProperty('--fo', (-n * 2.3) + 's');
     f.style.setProperty('--fx', ((n % 3) - 1) * 9 + 'px'); f.style.setProperty('--fy', (-6 - (n % 3) * 5) + 'px');
     f.style.setProperty('--r0', ((n % 2) ? -0.8 : 0.5) + 'deg'); f.style.setProperty('--r1', ((n % 2) ? 0.7 : -0.6) + 'deg');
-    f.innerHTML = `<div class="fl"><img src="${p.thumb}" alt="${p.title}" class="ex sh"></div>${capHtml(p)}`;
+    f.innerHTML = `<div class="fl">${photoImg(p, 'ex sh', '(max-width: 760px) 26vw, 17vw')}</div>${capHtml(p)}`;
     addPhoto(p, f);
     strays.push({ el: f, hour, n, p });
   } else if (kind === 'po') {
@@ -120,7 +127,7 @@ for (const [kind, key, hour] of ORDER) {
       b.className = 'blob';
       const a = blobPoly(i + 1, 0), bb = blobPoly(i + 1, 1), c = blobPoly(i + 1, 2);
       morphSheet.insertRule(`@keyframes morph${i} { 0%, 100% { clip-path: polygon(${a}); } 36% { clip-path: polygon(${bb}); } 70% { clip-path: polygon(${c}); } }`, morphSheet.cssRules.length);
-      b.innerHTML = cspHTML(`<div class="sheet" style="--p:${a}; animation-name: morph${i}"><img src="${small(p)}" alt="${p.title}"></div>${capHtml(p)}`);
+      b.innerHTML = cspHTML(`<div class="sheet" style="--p:${a}; animation-name: morph${i}">${photoImg(p, '', '(max-width: 760px) 56vw, 30vw')}</div>${capHtml(p)}`);
       b.style.setProperty('--md', (28 + i * 5) + 's'); b.style.setProperty('--mo', (-i * 7) + 's');
       b.style.setProperty('--cd', (9 + i * 2) + 's'); b.style.setProperty('--co', (-i * 3) + 's');
       addPhoto(p, b);
@@ -136,7 +143,7 @@ for (const [kind, key, hour] of ORDER) {
       const p = byId[id];
       const f = document.createElement('figure');
       f.style.setProperty('--ar', p.aspect);
-      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex sh" loading="lazy">${capHtml(p)}`;
+      f.innerHTML = `${photoImg(p, 'ex sh', '(max-width: 760px) 44vw, 25vw')}${capHtml(p)}`;
       addPhoto(p, f);
       ring.appendChild(f);
       return { el: f, p, i };
@@ -147,7 +154,7 @@ for (const [kind, key, hour] of ORDER) {
       const p = byId[id];
       const f = document.createElement('figure');
       f.style.setProperty('--ar', p.aspect);
-      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex sh">${capHtml(p)}`;
+      f.innerHTML = `${photoImg(p, 'ex sh', '(max-width: 760px) 44vw, 25vw')}${capHtml(p)}`;
       addPhoto(p, f);
       it.pin.appendChild(f);
       return { el: f, p, i };
@@ -163,7 +170,7 @@ for (const [kind, key, hour] of ORDER) {
       const [aw, ah] = p.aspect.split('/').map(Number);
       if (aw > ah) f.classList.add('land');
       f.style.setProperty('--ih', aw > ah ? '78%' : '100%');
-      f.innerHTML = `<img src="${small(p)}" alt="${p.title}" class="ex" loading="lazy">${capHtml(p)}`;
+      f.innerHTML = `${photoImg(p, 'ex', '(max-width: 760px) 62vw, 46vw')}${capHtml(p)}`;
       addPhoto(p, f);
       friezeTrack.appendChild(f);
     });
@@ -598,9 +605,15 @@ const fmt = h => { const hh = Math.floor(((h % 24) + 24) % 24), mm = Math.floor(
 const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; };
 function paint(h, t, dt) {
   const s = drawSky(h, t, dt);
-  const k = smooth(0.37, 0.47, lum(mix(s.z, s.o, 0.5)));
-  const ink = mix(INK_D, INK_L, k).map(Math.round);
+  // WCAG relative luminance uses linear sRGB, not the visual-lightness
+  // approximation used by the sky. Either black or white always exceeds 4.5:1.
+  const paper = s.o.map(Math.round);
+  const linear = paper.map(v => { const c = v / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; });
+  const luminance = .2126 * linear[0] + .7152 * linear[1] + .0722 * linear[2];
+  const k = luminance > .179 ? 1 : 0;
+  const ink = k ? [0, 0, 0] : [255, 255, 255];
   const st = document.documentElement.style;
+  st.setProperty('--paper', rgb(paper));
   st.setProperty('--ink', `rgb(${ink})`);
   st.setProperty('--ink-rgb', ink.join(', '));
   st.setProperty('--sky', rgb(s.o));
@@ -870,7 +883,7 @@ function flyLogo() {
   a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; };
 }
 function preloadAll() {
-  const urls = [...new Set([...document.images].filter(i => !phone || i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
+  const urls = [...new Set([...document.images].filter(i => i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
   return Promise.all(urls.map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u; im.decode?.().then(r, r); })));
 }
 function start() {
@@ -878,7 +891,11 @@ function start() {
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
   paint(0, 0, 16);
-  if (phone) for (const it of items) if (cdist(it.hour, target) < 2) it.el.querySelectorAll('img[loading=lazy]').forEach(i => { i.loading = 'eager'; });
+  // Only the arrival stage needs an eager image; native viewport loading handles
+  // subsequent scrolling. Never preload every lazy URL on desktop.
+  const arrival = items.reduce((a, b) => cdist(a.hour, target) < cdist(b.hour, target) ? a : b);
+  const firstImage = arrival.el.querySelector('img');
+  if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
   const sweepStart = new Promise(r => setTimeout(r, q.has('fast') ? 50 : drawn * 0.72));

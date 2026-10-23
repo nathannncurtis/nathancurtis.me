@@ -124,6 +124,25 @@
   .mu .seek { position: absolute; inset: -14px 0; width: 100%; height: 29px; margin: 0; opacity: 0; cursor: pointer; }
   .mu .seek:disabled { cursor: default; }
 
+  /* Canvas weather can vary behind any glyph. Opaque, sky-coloured reading
+     surfaces make contrast deterministic without flattening the surrounding sky. */
+  #rail, #dial, #logo, .cap, .po h2, .po .tx, .po .ln small,
+  .mu h2, .mu ol, .mu .ctl, .k-lights h3, .k-frieze h3, .k-turn h3,
+  #light figcaption, #light .k { background: var(--paper, #0a0c18); }
+  #rail, #dial, #logo, .cap, .po h2, .po .tx, .po .ln small,
+  .mu h2, .mu ol, .mu .ctl { box-shadow: 0 0 0 4px var(--paper, #0a0c18); }
+  #work, #priv, #priv:hover, #clock i, .po h2, .po.lit .ln small,
+  .mu h2 i, .mu li span:last-child, .mu .ctl button,
+  .mu .sleeve .cover small, .k-lights h3, .k-frieze h3, .k-turn h3,
+  #light figcaption em, #light .k { opacity: 1; }
+  #rail b, #rail b[data-l]::after { opacity: 1; }
+  .cap { transition: none; }
+  .ph .cap, .st:hover .cap, .k-lights .blob:hover .cap,
+  .k-frieze figure:hover .cap { opacity: 1; }
+  .po .ln small { transition: none; }
+  .mu .bar { background: currentColor; }
+  a:focus-visible, #light .k:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
   #light { position: fixed; inset: 0; z-index: 20; display: none; background: linear-gradient(var(--sky-z), var(--sky)); cursor: zoom-out; }
   #light.on { display: block; }
   #light .cloud { position: absolute; inset: -10%; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='4' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 -.25'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23f%29'/%3E%3C/svg%3E"); background-size: 140% 140%; filter: blur(24px); opacity: 0; pointer-events: none; }
