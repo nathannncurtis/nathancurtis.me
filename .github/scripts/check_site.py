@@ -63,6 +63,13 @@ for rel, url in PAGES.items():
     img = h.meta.get("og:image", "")
     if img.startswith(DOMAIN) and not (SITE / img[len(DOMAIN):].lstrip("/")).is_file(): err(f"{rel}: og:image {img} isn't in the site")
 
+# The fallback is excluded from indexing; valid pages must remain indexable.
+if "noindex" not in {x.strip().lower() for x in parse(SITE / "404.html").meta.get("robots", "").split(",")}:
+    err("404.html: missing robots noindex")
+for rel in PAGES:
+    if "noindex" in {x.strip().lower() for x in parse(SITE / rel).meta.get("robots", "").split(",")}:
+        err(f"{rel}: valid page must remain indexable")
+
 # Every HTML file: icons, no mutable manual beacon, and links that go somewhere
 for page in sorted(SITE.rglob("*.html")):
     rel = page.relative_to(SITE)
