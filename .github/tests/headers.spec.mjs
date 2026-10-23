@@ -32,3 +32,11 @@ test('a song answers byte ranges through the Worker', async ({ request }) => {
   expect(res.headers()['content-range']).toMatch(/^bytes 0-99\/\d+$/);
   expect((await res.body()).length).toBe(100);
 });
+
+for (const path of ['/no-such-page', '/404.html']) {
+  test(`missing page is not indexable: ${path}`, async ({ request }) => {
+    const res = await request.get(BASE + path);
+    expect(res.status()).toBe(path === '/404.html' ? 200 : 404);
+    expect(await res.text()).toMatch(/<meta\s+name="robots"\s+content="noindex"\s*\/?>/i);
+  });
+}
