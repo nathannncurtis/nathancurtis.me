@@ -172,6 +172,7 @@
     background-blend-mode: soft-light, normal; }
   @media (min-width: 1180px) { .e .side { background: color-mix(in srgb, var(--s0) 62%, transparent); } }
   figure { background: color-mix(in srgb, var(--s0) 55%, transparent); }
+  figure:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
   a:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 </style>
 </head>
@@ -323,7 +324,15 @@ function render(e) {
   const go = e.sealed ? '' : site + `<a class="go dot" href="${e.url}" target="_blank" rel="noopener">${e.web ? '' : GH}${esc(e.go)}<span class="ar">→</span></a>`;
   html += `<div class="meta ln" style="height:auto;white-space:normal;${d()}">${meta}${go}</div>`;
   e.textEl.innerHTML = html;
+  e.textEl.querySelectorAll('figure').forEach((fig, index) => {
+    const caption = fig.querySelector('figcaption');
+    if (e.sealed) { fig.setAttribute('aria-label', 'Redacted project illustration'); }
+    else if (caption) { caption.id = `caption-${entries.indexOf(e)}-${index}`; fig.setAttribute('aria-labelledby', caption.id); }
+    // Native scrolling handles arrows, touch and pointer input. Only actual overflow adds a tab stop.
+    fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1;
+  });
   if (e.diagram) { drawDiagram(); hotNow = new Map(); litNow = new Set(); }
+  e.textEl.querySelectorAll('figure').forEach(fig => { fig.tabIndex = fig.scrollWidth > fig.clientWidth + 1 ? 0 : -1; });
 }
 
 const diagram = (() => {

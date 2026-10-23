@@ -7,9 +7,7 @@ const ACCEPTED_AXE = [
   // The day page colours its text from the sky at the visitor's hour (music titles and controls, poem headings and
   // notes, the Greece heading), and at some hours they fall under 4.5:1. Follow-up: a contrast floor in the sky code.
   { rule: 'color-contrast', path: '/', target: /./ },
-  // /work on phones and tablets: the project figures scroll sideways but can't take keyboard focus.
-  // Follow-up: tabindex="0" and a label on each scrolling figure.
-  { rule: 'scrollable-region-focusable', path: '/work', target: /figure|\.fig/ },
+
 ];
 
 export async function watch(page, base, expect404 = false) {
