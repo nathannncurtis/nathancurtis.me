@@ -9,7 +9,17 @@ import { visitWd } from './wd-checks.mjs';
 const target = process.argv[2] ?? 'desktop';
 const opts = new safari.Options();
 if (target === 'ios') opts.set('platformName', 'iOS').set('safari:useSimulator', true).set('safari:deviceType', 'iPhone');
-const driver = await new Builder().forBrowser('safari').setSafariOptions(opts).build();
+// The first session to a freshly booted simulator can time out finding Safari; a later attempt finds it.
+let driver;
+for (let attempt = 1; !driver; attempt++) {
+  try {
+    driver = await new Builder().forBrowser('safari').setSafariOptions(opts).build();
+  } catch (e) {
+    if (attempt === 3) throw e;
+    console.log(`::warning::safari ${target}: session attempt ${attempt} failed (${e.message.split('\n')[0]}), retrying`);
+    await new Promise(r => setTimeout(r, 15_000));
+  }
+}
 const shots = `../../test-results/safari-${target}`;
 mkdirSync(shots, { recursive: true });
 let bad = 0;

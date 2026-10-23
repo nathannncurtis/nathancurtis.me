@@ -217,6 +217,9 @@ jobs:
           # Safari's Remote Automation switch, which safaridriver needs on iOS.
           xcrun simctl spawn "$udid" defaults write com.apple.mobilesafari RemoteAutomationEnabled -bool true
           xcrun simctl spawn "$udid" defaults write com.apple.WebKit.WebContent RemoteAutomationEnabled -bool true
+          # Open Safari once so safaridriver finds it running.
+          xcrun simctl launch "$udid" com.apple.mobilesafari
+          sleep 10
       - name: Safari on iOS
         working-directory: .github/tests
         run: node safari.mjs ios
