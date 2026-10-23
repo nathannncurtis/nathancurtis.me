@@ -136,15 +136,20 @@
   .mu h2 { font-size: 17px; font-weight: 500; margin: 0; }
   .mu h2 i { font-weight: normal; opacity: .55; margin-left: .7em; }
   .mu ol { list-style: none; margin: .7em 0 0; padding: 0; }
-  .mu li { display: flex; justify-content: space-between; padding: .4em 0; border-top: 1px solid rgba(var(--ink-rgb), .18); cursor: pointer; transition: padding-left .3s; }
-  .mu li:hover { padding-left: .5em; }
-  .mu li.on { font-style: italic; padding-left: .5em; }
+  .mu button { appearance: none; border: 0; border-radius: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .mu li { border-top: 1px solid rgba(var(--ink-rgb), .18); }
+  .mu .track-button { display: flex; justify-content: space-between; gap: 1em; width: 100%; padding: .4em 0; transition: padding-left .3s; }
+  .mu li:hover .track-button, .mu .track-button:focus-visible { padding-left: .5em; }
+  .mu li.on .track-button { font-style: italic; padding-left: .5em; }
   .mu li span:last-child { opacity: .7; font-variant-numeric: tabular-nums; }
   .mu .bar { height: 1px; background: rgba(var(--ink-rgb), .25); margin-top: 1em; position: relative; cursor: pointer; }
   .mu .bar b { position: absolute; left: 0; top: -1px; height: 3px; width: 0; background: currentColor; }
   .mu .ctl { display: flex; gap: 1.2em; margin-top: .7em; font-size: 15px; }
-  .mu .ctl span { cursor: pointer; opacity: .45; transition: opacity .3s; }
-  .mu .ctl span.on, .mu .ctl span:hover { opacity: 1; }
+  .mu .ctl button { padding: 0; opacity: .45; transition: opacity .3s; }
+  .mu .ctl button.on, .mu .ctl button:hover, .mu .ctl button:focus-visible { opacity: 1; }
+  .mu button:focus-visible, .mu .bar:focus-within { outline: 2px solid currentColor; outline-offset: 5px; }
+  .mu .seek { position: absolute; inset: -14px 0; width: 100%; height: 29px; margin: 0; opacity: 0; cursor: pointer; }
+  .mu .seek:disabled { cursor: default; }
 
   #light { position: fixed; inset: 0; z-index: 20; display: none; background: linear-gradient(var(--sky-z), var(--sky)); cursor: zoom-out; }
   #light.on { display: block; }
@@ -186,9 +191,9 @@
   @media (max-width: 760px) {
     #chrome::before { content: ""; position: absolute; inset: 0 0 -28px 0; z-index: -1; pointer-events: none; background: linear-gradient(var(--sky-z) 35%, rgba(0, 0, 0, 0)); }
     #clock { padding: 10px 0 8px 16px; margin: -10px 0 -8px -16px; }
-    .mu li { padding: .75em 0; }
+    .mu .track-button { padding: .75em 0; }
     .mu .ctl { gap: 0; }
-    .mu .ctl span { padding: .75em 1.4em .75em 0; }
+    .mu .ctl button { padding: .75em 1.4em .75em 0; }
   }
   @media (max-height: 500px) {
     #rail { display: none; }
@@ -321,9 +326,10 @@ for (const [kind, key, hour] of ORDER) {
     const m = music[key];
     const s = document.createElement('section');
     s.className = 'mu hold';
+    s.setAttribute('aria-label', m.title);
     const face = m.cover ? `<img src="${m.cover}" alt="" class="sh">` : `<div class="cover sh"><small>${m.kind}</small>${m.title}</div>`;
-    const list = m.tracks.map((t, i) => `<li data-i="${i}"><span>${t.title}</span><span>${t.length}</span></li>`).join('');
-    s.innerHTML = `<div class="sleeve"><div class="disc"></div>${face}</div><h2>${m.title}<i>${m.kind}</i></h2><ol>${list}</ol><div class="bar"><b></b></div><div class="ctl"><span data-a="play">Play</span><span data-a="pause">Pause</span></div>`;
+    const list = m.tracks.map((t, i) => `<li data-i="${i}"><button type="button" class="track-button"><span>${t.title}</span><span>${t.length}</span></button></li>`).join('');
+    s.innerHTML = `<div class="sleeve"><div class="disc"></div>${face}</div><h2>${m.title}<i>${m.kind}</i></h2><ol>${list}</ol><div class="bar"><b></b><input class="seek" type="range" min="0" max="100" step="1" value="0" aria-label="Playback position" aria-valuetext="Not playing" disabled></div><div class="ctl"><button type="button" data-a="play" aria-pressed="false">Play</button><button type="button" data-a="pause" aria-pressed="false">Pause</button></div>`;
     wirePlayer(s, m);
     stage(hour, 'mu', s, 150);
   } else if (kind === 'lights') {
@@ -392,11 +398,14 @@ for (const s of strays) {
 const firstStage = items.find(it => !it.flow), lastFlow = items[items.length - 1];
 const topClone = lastFlow.el.cloneNode(true);
 topClone.classList.remove('dev'); topClone.classList.add('lit');
+topClone.setAttribute('aria-hidden', 'true');
 day.prepend(topClone);
 items.unshift({ hour: lastFlow.hour - 24, kind: 'po', el: topClone, flow: true });
 const botClone = firstStage.el.cloneNode(true);
 botClone.classList.remove('dev'); botClone.classList.add('lit');
-botClone.querySelectorAll('li, .ctl span, .bar').forEach(el => el.onclick = () => { scrollTo({ top: scrollY - loopLen(), behavior: 'instant' }); });
+botClone.setAttribute('aria-hidden', 'true');
+botClone.querySelectorAll('button, input').forEach(el => el.tabIndex = -1);
+botClone.querySelectorAll('li, .ctl button, .bar').forEach(el => el.onclick = () => { scrollTo({ top: scrollY - loopLen(), behavior: 'instant' }); });
 day.appendChild(botClone);
 items.push({ hour: firstStage.hour + 24, kind: 'mu', el: botClone, pin: botClone.querySelector('.pin'), inner: botClone.querySelector('.hold'), span: firstStage.span });
 const loopLen = () => lastFlow.el.offsetTop - topClone.offsetTop;
@@ -404,25 +413,61 @@ const loopLen = () => lastFlow.el.offsetTop - topClone.offsetTop;
 const audio = document.getElementById('audio');
 let current = null;
 function wirePlayer(s, m) {
-  const bar = s.querySelector('.bar'), fill = bar.querySelector('b');
+  const bar = s.querySelector('.bar'), fill = bar.querySelector('b'), seek = bar.querySelector('.seek');
   const lis = [...s.querySelectorAll('li')];
-  const ctl = s.querySelectorAll('.ctl span');
-  const reset = () => { lis.forEach(l => l.classList.remove('on')); fill.style.width = 0; ctl.forEach(c => c.classList.remove('on')); s.classList.remove('out', 'playing'); };
+  const ctl = s.querySelectorAll('.ctl button');
+  const timeLabel = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+  const updatePosition = () => {
+    const ready = Number.isFinite(audio.duration) && audio.duration > 0;
+    const percent = ready ? audio.currentTime / audio.duration * 100 : 0;
+    fill.style.width = percent + '%';
+    seek.disabled = !ready;
+    seek.value = percent;
+    seek.setAttribute('aria-valuetext', ready ? `${timeLabel(audio.currentTime)} of ${timeLabel(audio.duration)}` : 'Not playing');
+  };
+  const setPlayback = playing => {
+    s.classList.toggle('playing', playing);
+    ctl.forEach((c, i) => {
+      const on = i === 0 ? playing : !playing;
+      c.classList.toggle('on', on);
+      c.setAttribute('aria-pressed', String(on));
+    });
+  };
+  const reset = () => {
+    lis.forEach(l => { l.classList.remove('on'); l.querySelector('button').removeAttribute('aria-current'); });
+    fill.style.width = 0;
+    seek.value = 0; seek.disabled = true; seek.setAttribute('aria-valuetext', 'Not playing');
+    ctl.forEach(c => { c.classList.remove('on'); c.setAttribute('aria-pressed', 'false'); });
+    s.classList.remove('out', 'playing');
+  };
+  const resume = () => audio.play().catch(() => { if (current && current.s === s) setPlayback(false); });
   const play = i => {
     if (current && current.s !== s) current.reset();
     current = { s, reset, m };
-    lis.forEach((l, k) => l.classList.toggle('on', k === i));
-    audio.src = m.tracks[i].src;
-    audio.play();
-    s.classList.add('out', 'playing');
-    ctl[0].classList.add('on'); ctl[1].classList.remove('on');
-    audio.ontimeupdate = () => { fill.style.width = (audio.currentTime / audio.duration * 100 || 0) + '%'; };
+    lis.forEach((l, k) => {
+      l.classList.toggle('on', k === i);
+      if (k === i) l.querySelector('button').setAttribute('aria-current', 'true');
+      else l.querySelector('button').removeAttribute('aria-current');
+    });
+    seek.value = 0; seek.disabled = true; seek.setAttribute('aria-valuetext', 'Loading'); fill.style.width = 0;
+    audio.onplay = () => setPlayback(true);
+    audio.onpause = () => setPlayback(false);
+    audio.onloadedmetadata = updatePosition;
+    audio.ontimeupdate = updatePosition;
     audio.onended = () => { if (i + 1 < m.tracks.length) play(i + 1); else reset(); };
+    audio.src = m.tracks[i].src;
+    s.classList.add('out');
+    resume();
   };
-  lis.forEach(l => l.onclick = () => play(+l.dataset.i));
-  ctl[0].onclick = () => { if (current && current.s === s && audio.src) { audio.play(); s.classList.add('playing'); ctl[0].classList.add('on'); ctl[1].classList.remove('on'); } else play(0); };
-  ctl[1].onclick = () => { if (current && current.s === s) { audio.pause(); s.classList.remove('playing'); ctl[1].classList.add('on'); ctl[0].classList.remove('on'); } };
-  bar.onclick = e => { if (current && current.s === s && audio.duration) audio.currentTime = audio.duration * clamp((e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth, 0, 1); };
+  lis.forEach(l => l.querySelector('button').onclick = () => play(+l.dataset.i));
+  ctl[0].onclick = () => { if (current && current.s === s && audio.src) resume(); else play(0); };
+  ctl[1].onclick = () => { if (current && current.s === s) audio.pause(); };
+  seek.oninput = () => {
+    if (current && current.s === s && Number.isFinite(audio.duration) && audio.duration > 0) {
+      audio.currentTime = audio.duration * Number(seek.value) / 100;
+      updatePosition();
+    }
+  };
 }
 
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
