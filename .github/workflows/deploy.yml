@@ -9,6 +9,7 @@ on:
       - '.github/**'
       - '.zap/**'
       - '.gitleaks.toml'
+      - '.gitignore'
       - 'README.md'
   workflow_dispatch:
 

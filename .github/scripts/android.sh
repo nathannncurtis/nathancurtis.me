@@ -10,5 +10,5 @@ adb shell "echo '_ --disable-fre --no-default-browser-check --no-first-run --dis
 adb shell am start -n com.android.chrome/com.google.android.apps.chrome.Main -d about:blank
 sleep 8
 adb forward tcp:9222 localabstract:chrome_devtools_remote
-for i in $(seq 30); do curl -sf http://127.0.0.1:9222/json/version && break; sleep 2; done
+for _ in $(seq 30); do curl -sf http://127.0.0.1:9222/json/version && break; sleep 2; done
 cd .github/tests && node android.mjs

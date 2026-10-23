@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # The launch checklist, run against _site: page heads, the files beside them, links, and the CSP.
-import datetime, re, struct, sys, xml.etree.ElementTree as ET
+import datetime, re, struct, sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
@@ -86,18 +86,16 @@ for name, size in (("og.png", (1200, 630)), ("apple-touch-icon.png", (180, 180))
     got = png_size(SITE / name)
     if got != size: err(f"{name} is {got}, want {size}")
 
-# sitemap.xml: the sitemaps.org namespace, and every page in it exists
-try:
-    root = ET.parse(SITE / "sitemap.xml").getroot()
-    ns = "http://www.sitemaps.org/schemas/sitemap/0.9"
-    if root.tag != f"{{{ns}}}urlset": err(f"sitemap.xml: root is {root.tag}, want {{{ns}}}urlset")
-    locs = [l.text.strip() for l in root.iter(f"{{{ns}}}loc")]
-    for loc in locs:
-        if not loc.startswith(DOMAIN) or not resolves(urlparse(loc).path or "/", Path("index.html")): err(f"sitemap.xml: {loc} isn't a page here")
-    for url in PAGES.values():
-        if DOMAIN + url not in locs: err(f"sitemap.xml: missing {DOMAIN + url}")
-except ET.ParseError as e:
-    err(f"sitemap.xml: {e}")
+# sitemap.xml: the sitemaps.org namespace, and every page in it exists. Read as text: it is our own small file,
+# and xmllint in the workflow checks that it is well formed.
+sitemap = (SITE / "sitemap.xml").read_text()
+ns = "http://www.sitemaps.org/schemas/sitemap/0.9"
+if not re.search(rf'<urlset[^>]*\sxmlns="{re.escape(ns)}"', sitemap): err(f"sitemap.xml: <urlset> needs xmlns=\"{ns}\"")
+locs = [l.strip() for l in re.findall(r"<loc>([^<]+)</loc>", sitemap)]
+for loc in locs:
+    if not loc.startswith(DOMAIN) or not resolves(urlparse(loc).path or "/", Path("index.html")): err(f"sitemap.xml: {loc} isn't a page here")
+for url in PAGES.values():
+    if DOMAIN + url not in locs: err(f"sitemap.xml: missing {DOMAIN + url}")
 
 # robots.txt: points at the sitemap, still turns away AI training crawlers
 robots = (SITE / "robots.txt").read_text()

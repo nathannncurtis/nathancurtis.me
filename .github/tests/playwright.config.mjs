@@ -11,6 +11,8 @@ export default defineConfig({
   outputDir: `${root}/test-results`,
   reporter: [['list'], ['html', { open: 'never', outputFolder: `${root}/playwright-report` }]],
   fullyParallel: true,
+  // Windows runners run out of socket buffers (ERR_NO_BUFFER_SPACE) with every core loading pages at once.
+  workers: process.platform === 'win32' ? 2 : undefined,
   retries: process.env.CI ? 1 : 0,
   timeout: 90_000,
   webServer: {

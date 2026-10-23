@@ -105,7 +105,10 @@ jobs:
       - name: Assemble the site
         run: ./.github/scripts/assemble.sh
       - name: Heads, icons, beacon, sitemap, robots, security.txt, CSP coverage
-        run: python3 .github/scripts/check_site.py _site
+        run: |
+          command -v xmllint >/dev/null || sudo apt-get install -y -qq libxml2-utils
+          xmllint --noout _site/sitemap.xml
+          python3 .github/scripts/check_site.py _site
       - name: Everything content.js names exists
         run: node .github/scripts/content.mjs _site
       - name: Scripts parse
@@ -351,7 +354,7 @@ jobs:
       - name: Scan, fail on High or Critical
         run: |
           touch nuclei.jsonl
-          ./nuclei -u http://127.0.0.1:8787 -t templates/http -disable-update-check -no-color -silent -jsonl -o nuclei.jsonl || true
+          ./nuclei -u http://127.0.0.1:8787 -t templates/http -disable-update-check -no-color -silent -jsonl -o nuclei.jsonl > /dev/null || true
           jq -r '"\(.info.severity) \(."template-id") \(."matched-at")"' nuclei.jsonl | sort -u
           [ "$(jq -s '[.[] | select(.info.severity == "high" or .info.severity == "critical")] | length' nuclei.jsonl)" -eq 0 ]
 
