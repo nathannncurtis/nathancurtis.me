@@ -2,15 +2,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { OUTSIDE } from './pages.mjs';
 
-// Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
-const ACCEPTED_AXE = [
-  // The day page and /work colour their text from the sky or a muted ink; contrast is a deliberate look, not a bug.
-  { rule: 'color-contrast', path: '/', target: /./ },
-  { rule: 'color-contrast', path: '/work', target: /./ },
-  { rule: 'color-contrast', path: '/privacy', target: /./ },
-  { rule: 'color-contrast', path: '/no-such-page', target: /./ },
-];
-
 export async function stubAnalytics(page) {
   // The analytics beacon only accepts the real site's origin; answer it here so it stays quiet.
   await page.route(/cloudflareinsights\.com/, r => r.fulfill(/beacon/.test(r.request().url())
@@ -66,10 +57,29 @@ export async function visit(page, base, { path, status }, { axe = true } = {}) {
   }));
 
   if (axe) {
-    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
-    for (const v of r.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')) {
-      const nodes = v.nodes.map(n => n.target.join(' ')).filter(t => !ACCEPTED_AXE.some(a => a.rule === v.id && a.path === path && a.target.test(t)));
-      if (nodes.length) problems.push(`axe ${v.impact}: ${v.id} (${v.help}) at ${nodes.slice(0, 3).join(', ')}`);
+    const tags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+    const report = (r, where) => {
+      for (const v of r.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')) {
+        const nodes = v.nodes.map(n => n.target.join(' '));
+        if (nodes.length) problems.push(`axe ${v.impact}: ${v.id} (${v.help}) at ${nodes.slice(0, 3).join(', ')}${where}`);
+      }
+    };
+    if (path === '/') {
+      // The day page has a full-day sequence in the DOM. Check all rules across it, then
+      // check contrast on the text actually painted over this viewport's current sky.
+      report(await new AxeBuilder({ page }).withTags(tags).disableRules(['color-contrast']).analyze(), '');
+      await page.evaluate(() => {
+        document.querySelectorAll('[data-a11y-contrast]').forEach(el => el.removeAttribute('data-a11y-contrast'));
+        for (const el of document.querySelectorAll('body *')) {
+          if (![...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim())) continue;
+          const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+          if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0 || r.width < 1 || r.height < 1 || r.right <= 0 || r.left >= innerWidth || r.bottom <= 0 || r.top >= innerHeight) continue;
+          el.setAttribute('data-a11y-contrast', '');
+        }
+      });
+      report(await new AxeBuilder({ page }).withRules(['color-contrast']).include('[data-a11y-contrast]').analyze(), ' in the current viewport');
+    } else {
+      report(await new AxeBuilder({ page }).withTags(tags).analyze(), '');
     }
   }
   return problems;

@@ -106,6 +106,16 @@ for (const [kind, key, hour] of ORDER) {
       const n = v.notes && v.notes[line];
       return `<span class="ln" style="--d:${(k++ * 0.045).toFixed(3)}s"><span class="tx">${line || '&nbsp;'}</span>${n ? `<small>${n}</small>` : ''}</span>`;
     }).join('') + '</p>').join(''));
+    const words = new Intl.Segmenter(undefined, { granularity: 'word' });
+    s.querySelectorAll('.tx').forEach(tx => {
+      const parts = [...words.segment(tx.textContent)];
+      tx.replaceChildren(...parts.map(part => {
+        if (/^\s+$/.test(part.segment)) return document.createTextNode(part.segment);
+        const zone = document.createElement('span');
+        zone.className = 'ink-zone'; zone.textContent = part.segment;
+        return zone;
+      }));
+    });
     day.appendChild(s);
     items.push({ hour, kind, el: s, flow: true });
   } else if (kind === 'mu') {
@@ -624,6 +634,7 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
+  window.updateCanvasTextContrast?.(skyEl, ink);
 }
 function motion(t) {
   const H = vh();

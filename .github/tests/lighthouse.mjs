@@ -13,12 +13,6 @@ const FLOORS = {
   mobile: { performance: 90, accessibility: 100, 'best-practices': 100, seo: 100 },
   desktop: { performance: 95, accessibility: 100, 'best-practices': 100, seo: 100 },
 };
-// Known findings on the site, accepted until the follow-up named beside each lands. Keys: path, or path@form.
-const ACCEPTED = {
-  '/work': ['color-contrast'],
-  '/': ['color-contrast'],
-  '/privacy': ['color-contrast'],
-};
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
   // Served over http on this machine, so HTTPS can't be judged here (live.yml does, on the real site),
@@ -53,7 +47,7 @@ try {
       writeFileSync(`${out}${form}${path.replace(/\W+/g, '_') || '_home'}.html`, runs[pick].report);
       const l = lhr[pick];
       const scores = Object.fromEntries(Object.keys(FLOORS[form]).map(k => [k, Math.round(median(lhr.map(x => x.categories[k].score)) * 100)]));
-      const ok = new Set([...(ACCEPTED[path] ?? []), ...(ACCEPTED[`${path}@${form}`] ?? [])]);
+      const ok = new Set();
       const problems = [];
       const a = l.audits, b = BUDGETS[form];
       for (const [k, floor] of Object.entries(FLOORS[form])) {
