@@ -5,11 +5,7 @@ import { CspParser } from 'csp_evaluator/dist/parser.js';
 import { Severity } from 'csp_evaluator/dist/finding.js';
 
 // Accepted, each with its reason. Remove a line when its follow-up lands.
-const ACCEPTED = [
-  // The pages keep their scripts and styles inline; moving them to files with hashes is its own change.
-  { directive: 'script-src', value: "'unsafe-inline'" },
-  { directive: 'style-src', value: "'unsafe-inline'" },
-];
+const ACCEPTED = [];
 
 const line = readFileSync(new URL('../../_headers', import.meta.url), 'utf8').split('\n').find(l => l.includes('Content-Security-Policy:'));
 const policy = line.split('Content-Security-Policy:')[1].trim();

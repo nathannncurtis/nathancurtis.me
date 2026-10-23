@@ -1,5 +1,3 @@
 # id	IGNORE|WARN|FAIL	name. One line of reason above each accepted rule.
-# The pages keep their scripts and styles inline; moving them to files with hashes is its own change.
-10055	WARN	CSP: script-src / style-src unsafe-inline
 # Cross-origin isolation (COOP/COEP/CORP) is for pages that need SharedArrayBuffer and the like; this site uses none.
 90004	IGNORE	Cross-Origin policy headers (COEP, COOP, CORP)

@@ -25,13 +25,10 @@
 <meta name="twitter:image" content="https://nathancurtis.me/og.png">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/status/status.css">
-<style>
-  main > div { max-width: 34em; }
-  h1 { font-size: clamp(26px, 3.2vw, 36px); }
-  p { opacity: .85; margin-bottom: 1em; }
-  .small { font-size: 15px; font-style: italic; opacity: .55; }
-  body { overflow-y: auto; }
-</style>
+
+<link rel="stylesheet" href="/assets/privacy-index.css">
+<link rel="stylesheet" href="/assets/runtime.css">
+<script src="/assets/csp.js"></script>
 </head>
 <body>
 <canvas id="sky"></canvas>
@@ -44,12 +41,12 @@
 <p>The work page asks GitHub for the current commit counts and versions of the projects on it, so GitHub sees that request the same way it would if you visited those projects yourself.</p>
 <p>The site is hosted on Cloudflare, which keeps ordinary server logs for a short while, as any host does; I don't see those, and I don't ask for them.</p>
 <p>The photographs, poems and music are mine. All rights reserved. If you'd like to use one, ask.</p>
-<p>Questions, or something looks wrong: <a class="go" style="margin:0" href="mailto:nathan@nathancurtis.me">nathan@nathancurtis.me</a>.</p>
+<p>Questions, or something looks wrong: <a class="go privacy-index-static-1" href="mailto:nathan@nathancurtis.me">nathan@nathancurtis.me</a>.</p>
 <p class="small">Last read through: <span id="when"></span>.</p>
 <a class="go" href="/">back to the day</a>
 </div></main>
 <script src="/sig-strokes.js"></script>
 <script src="/status/status.js"></script>
-<script>document.getElementById('when').textContent = 'October 18, 2026';</script>
+<script src="/assets/privacy-index-1.js"></script>
 </body>
 </html>
