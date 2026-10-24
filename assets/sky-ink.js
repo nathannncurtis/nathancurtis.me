@@ -196,10 +196,7 @@
   const clean = mk(), cleanCtx = clean.getContext('2d');
   let cleanFresh = false;
   window.skyInkClean = sky => { cleanCtx.drawImage(sky, 0, 0, SW, SH); cleanFresh = true; };
-  const boot = document.getElementById('boot');
   window.skyInk = sky => {
-    // Nothing to read while the opening veil still covers the sky.
-    if (boot && !boot.classList.contains('off')) return;
     place();
     if (!sky?.width) return;
     if (!cleanFresh) cleanCtx.drawImage(sky, 0, 0, SW, SH);

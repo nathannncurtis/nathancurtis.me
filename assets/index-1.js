@@ -922,8 +922,9 @@ function start() {
   if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
-  // The rest of the gallery downloads behind the signature without holding the opening, in the order a reader
-  // scrolling on from here meets it (forward through the day, round past midnight), a few at a time.
+  // Once the arrival photo is in, the rest of the gallery downloads behind the signature without holding the
+  // opening, in the order a reader scrolling on from here meets it (forward through the day, round past midnight),
+  // a few at a time. Starting earlier would make the photo the opening waits for share a slow connection.
   const ahead = el => { const it = items.find(i => i.el.contains(el)); return it ? (it.hour - target + 24) % 24 : 24; };
   const queue = [...document.images].filter(i => i.loading === 'lazy').sort((a, b) => ahead(a) - ahead(b));
   const next = () => {
@@ -932,7 +933,7 @@ function start() {
     let done = false; const on = () => { if (!done) { done = true; next(); } };
     if (img.complete && img.naturalWidth) on(); else { img.addEventListener('load', on, { once: true }); img.addEventListener('error', on, { once: true }); }
   };
-  for (let i = 0; i < 4; i++) next();
+  loaded.then(() => { for (let i = 0; i < 4; i++) next(); });
   // One line under the signature: the time here and the sky outside, written in as the signature finishes.
   const SAY = { fog: 'foggy', drizzle: 'drizzly', rain: 'raining', storm: 'stormy', snow: 'snowing' };
   const sayWeather = (d, h) => {
