@@ -156,9 +156,11 @@ jobs:
           - os: macos-latest
             projects: --project=webkit --project=chromium --project=firefox --project=iphone-15 --project=ipad
             browsers: chromium firefox webkit
+          # Edge alone: the other engines run on Ubuntu and macOS, and Windows runs out of socket buffers
+          # (ERR_NO_BUFFER_SPACE) when four browsers pull the whole gallery from one dev server.
           - os: windows-latest
-            projects: --project=edge --project=chromium --project=firefox --project=webkit
-            browsers: chromium firefox webkit
+            projects: --project=edge
+            browsers: chromium
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
