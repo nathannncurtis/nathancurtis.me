@@ -14,11 +14,27 @@ for (const width of [390, 1440]) for (const deviceScaleFactor of [1, 2]) {
     const bytes = await page.evaluate(() => performance.getEntriesByType('resource').reduce((s, r) => s + r.encodedBodySize, 0));
     // The whole gallery loads behind the opening, so this is the gallery's weight, not just the first screen's.
     expect(bytes).toBeLessThan(width < 760 ? 14_000_000 : 18_000_000);
+    // What every photo did: which file the browser chose, whether it arrived, how long the fetch took and how big it was.
+    const ledger = () => page.evaluate(() => [...document.querySelectorAll('img[srcset]')].map((i, n) => {
+      const r = performance.getEntriesByName(i.currentSrc)[0], name = i.currentSrc.split('/').pop();
+      return `${String(n).padStart(2)} ${name} complete=${i.complete} natural=${i.naturalWidth} loading=${i.loading} priority=${i.fetchPriority}`
+        + (r ? ` start=${Math.round(r.startTime)}ms took=${Math.round(r.duration)}ms bytes=${r.transferSize} status=${r.responseStatus}` : ' no response yet');
+    }).join('\n'));
+    const t0 = Date.now();
+    let n = 0;
     for (const image of await photos.all()) {
       await image.evaluate(i => i.scrollIntoView({ block: 'center', behavior: 'instant' }));
       // Every photo must arrive; how fast is Lighthouse's job, and parallel CI workers share one slow dev server.
-      await expect.poll(() => image.evaluate(i => i.complete && i.naturalWidth > 0), { timeout: 15_000 }).toBe(true);
+      const arrived = await expect.poll(() => image.evaluate(i => i.complete && i.naturalWidth > 0), { timeout: 15_000 }).toBe(true).then(() => true, () => false);
+      if (!arrived) {
+        const src = await image.evaluate(i => i.currentSrc);
+        console.log(`photo ${n} (${src}) didn't arrive in 15s, ${Date.now() - t0}ms into the gallery\n${await ledger()}`);
+        expect(arrived, `photo ${n} (${src}) didn't arrive in 15s`).toBe(true);
+      }
+      n++;
     }
+    const sum = await page.evaluate(() => performance.getEntriesByType('resource').filter(r => r.initiatorType === 'img').reduce((s, r) => ({ n: s.n + 1, bytes: s.bytes + r.transferSize, slowest: Math.max(s.slowest, r.duration) }), { n: 0, bytes: 0, slowest: 0 }));
+    console.log(`${width}px DPR ${deviceScaleFactor}: ${sum.n} photos, ${(sum.bytes / 1e6).toFixed(1)} MB in ${((Date.now() - t0) / 1000).toFixed(1)}s, slowest fetch ${Math.round(sum.slowest)}ms`);
     await page.evaluate(() => openLight(0));
     await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('#light .pic')).backgroundImage.includes(photos[0].p.src))).toBe(true);
     await context.close();
