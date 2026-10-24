@@ -18,7 +18,7 @@
   const stars = Array.from({ length: 190 }, () => [Math.random(), Math.random() * 0.8, Math.random(), Math.random() * 6.28]);
 
   const sky = document.getElementById('sky'), ctx = sky.getContext('2d');
-  let W = 0, H = 0;
+  let W = 0, H = 0, dark = null;
   const size = () => { const d = devicePixelRatio || 1; W = innerWidth; H = innerHeight; sky.width = W * d; sky.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
   function draw(h, t) {
     const z = at(ZEN, h), o = at(HOR, h);
@@ -38,9 +38,16 @@
       const mh = (h + 12) % 24, mA = Math.sin((mh - 6) / 12 * Math.PI), mx = ((mh - 6) / 12) * W * 1.1 - W * 0.05, my = H * 0.6 - mA * H * 0.5;
       if (mA > 0) { ctx.globalAlpha = night * 0.95; const halo = ctx.createRadialGradient(mx, my, 0, mx, my, 60); halo.addColorStop(0, 'rgba(220,225,245,.18)'); halo.addColorStop(1, 'rgba(220,225,245,0)'); ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(mx, my, 60, 0, 7); ctx.fill(); ctx.fillStyle = '#e9ecf7'; ctx.beginPath(); ctx.arc(mx, my, 13, 0, 7); ctx.fill(); ctx.fillStyle = rgb(z); ctx.beginPath(); ctx.arc(mx - 7, my - 3, 11.5, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
     }
-    const k = smooth(0.37, 0.47, lum(mix(z, o, 0.5))), ink = mix(INK_D, INK_L, k).map(Math.round);
+    // The ink takes a side, dark on a bright sky and light on a dim one, and holds it through the middle of dusk and
+    // dawn rather than passing through a grey that reads against neither. A soft halo in the other tone sits under
+    // the letters, as on the day page, and the side changes as a slow fade (status.css).
+    const L = lum(mix(z, o, 0.5)), k = smooth(0.37, 0.47, L);
+    if (dark === null) dark = L > 0.42; else if (dark ? L < 0.39 : L > 0.45) dark = !dark;
+    // The halo deepens as the sky nears the middle, where neither ink has much to stand on.
+    const ink = dark ? INK_L : INK_D, halo = dark ? '255, 248, 236' : '16, 12, 8', need = clamp(1 - Math.abs(L - 0.42) / 0.1, 0, 1);
     const st = document.documentElement.style;
-    st.setProperty('--ink', `rgb(${ink})`); st.setProperty('--ink-rgb', ink.join(', ')); st.setProperty('--sky', rgb(o)); st.setProperty('--sa', (0.22 + 0.38 * (1 - k)).toFixed(2));
+    st.setProperty('--ink', `rgb(${ink})`); st.setProperty('--ink-rgb', ink.join(', ')); st.setProperty('--halo', halo); st.setProperty('--halo-a', (0.5 + 0.2 * need).toFixed(2));
+    st.setProperty('--sky', rgb(o)); st.setProperty('--sa', (0.22 + 0.38 * (1 - k)).toFixed(2));
   }
   const logo = document.getElementById('logo');
   if (logo && window.SIG) { logo.setAttribute('viewBox', `0 0 ${SIG.w} ${SIG.h}`); logo.innerHTML = SIG.paths.map(p => `<path d="${p.d}" stroke-width="${p.w}"/>`).join(''); }
@@ -54,5 +61,7 @@
   }
   addEventListener('resize', () => { size(); draw(fixed ?? nowHour(), 0); });
   size(); frame(0);
+  // The ink fades between its sides only once the first frame has set it, so the page doesn't open mid-fade.
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.add('lit')));
   if (reduced) draw(fixed ?? nowHour(), 0);
 })();
