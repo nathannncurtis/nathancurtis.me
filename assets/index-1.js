@@ -614,7 +614,7 @@ const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting
 let pointer = { x: innerWidth / 2, y: innerHeight / 2 };
 addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
 
-let lastHour = -1, booting = true;
+let lastHour = -1, booting = true, landing = null;   // landing: the hour the opening sweeps to
 const fmt = h => { const hh = Math.floor(((h % 24) + 24) % 24), mm = Math.floor((((h % 1) + 1) % 1) * 60); return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
 const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; };
 function paint(h, t, dt) {
@@ -638,7 +638,9 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
-  window.skyInk?.(skyEl, h, t);
+  // While the opening sweeps the sky up from midnight, the text is inked for the hour it lands on, not for each
+  // hour passing behind it, so nothing changes side as the day comes up.
+  window.skyInk?.(skyEl, booting && landing !== null ? landing : h, t);
 }
 function motion(t) {
   const H = vh();
@@ -926,6 +928,7 @@ function start() {
   sizeSky();
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
+  landing = target;
   paint(0, 0, 16);
   // The arrival stage's photo comes first, and the opening waits only for it.
   const arrival = items.reduce((a, b) => cdist(a.hour, target) < cdist(b.hour, target) ? a : b);
@@ -976,12 +979,17 @@ function start() {
     layout();
     scrollTo(0, landY(target));
     layout();
+    // Everything at the landing is placed and lit under the veil, and kept placed through the sweep, so the day is
+    // already standing where it belongs as the veil lifts; nothing moves into position afterwards.
+    items.forEach(it => io.observe(it.el));
+    motion(performance.now());
     boot.classList.add('off');
     const t0 = performance.now(), dur = q.has('fast') ? 0 : 1800;
     const sweepDone = new Promise(res => {
       const sweep = now => {
         const k = dur ? ease(clamp((now - t0) / dur, 0, 1)) : 1;
         paint(target * k, now, 16);
+        motion(now);
         if (k < 1) requestAnimationFrame(sweep); else res();
       };
       requestAnimationFrame(sweep);
@@ -989,8 +997,8 @@ function start() {
     Promise.all([sweepDone, loaded]).then(() => {
       layout();
       scrollTo(0, landY(target));
+      motion(performance.now());
       document.body.classList.add('ready');
-      items.forEach(it => io.observe(it.el));
       setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; if (!fast) hintScroll(); })); }, q.has('fast') ? 0 : 350);
     });
   });
