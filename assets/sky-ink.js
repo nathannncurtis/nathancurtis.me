@@ -65,7 +65,8 @@
     return 1;
   };
   // A block entering takes whichever side needs less help across the column it will travel through, judged by most of
-  // that sky so a small bright spot (the moon) can't tip it, and leans toward where the sky is heading around dawn and dusk.
+  // that sky so a small bright spot (the moon) can't tip it. Only a near tie goes to where the day is heading: light
+  // after noon, dark before. A side that needs real shading never beats one that needs none.
   const entering = c => {
     const need = side => {
       const all = [];
@@ -73,8 +74,7 @@
       all.sort((a, b) => a - b);
       return all[Math.floor((all.length - 1) * 0.9)];
     };
-    const h = clockNow(), nl = need('light'), nd = need('dark'), near = (h >= 16.5 && h <= 21) || (h >= 4 && h <= 8.5);
-    const lean = near ? 0.3 : 0.05;
+    const h = clockNow(), nl = need('light'), nd = need('dark'), lean = 0.04;
     return h >= 12 ? (nl <= nd + lean ? 'light' : 'dark') : (nd <= nl + lean ? 'dark' : 'light');
   };
 
