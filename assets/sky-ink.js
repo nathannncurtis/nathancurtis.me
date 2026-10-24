@@ -92,13 +92,16 @@
   }
 
   const gap = (a, b) => Math.min(Math.abs(a - b), 24 - Math.abs(a - b));
+  // While the page is booting the sky sweeps from midnight to now in a second or two; nothing read then is worth
+  // keeping. Readings aren't smoothed and sides aren't held until the sweep is over.
+  const booting = () => document.body.classList.contains('booting');
   let lastClock = null, skyGen = 0;
   function place() {
     if (!ready) return;
     // When time jumps rather than scrolls (landing, the loop at midnight), the scene is new: every block chooses again,
     // against a sky reading taken after the jump.
     const now = clockNow();
-    if (lastClock !== null && gap(now, lastClock) > 0.5) onScreen = new Set();
+    if (booting() || (lastClock !== null && gap(now, lastClock) > 0.5)) onScreen = new Set();
     lastClock = now;
     if (builtClock !== null && gap(now, builtClock) > 0.25) return;
     const seen = new Set(), groups = new Map();
@@ -179,7 +182,7 @@
     for (let i = 0, j = 0; i < src.length; i += 4, j += 3) { raw[j] = src[i]; raw[j + 1] = src[i + 1]; raw[j + 2] = src[i + 2]; }
     // The ink and shade read a sky smoothed over a few frames, so flashes and twinkles don't flicker them.
     // When time jumps (landing, the loop at midnight) the old sky is no guide: start again from this one.
-    const jumped = builtClock !== null && gap(at, builtClock) > 0.5;
+    const jumped = booting() || (builtClock !== null && gap(at, builtClock) > 0.5);
     if (steady && !jumped) {
       // Once the smoothed sky has settled on what's drawn (nothing scrolling, no twinkle), the maps would come out
       // the same; rebuilding and repainting every line for that is wasted on every frame the page sits still.
