@@ -895,17 +895,19 @@ function hintScroll() {
   const stop = () => { touched = true; };
   const evs = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
   evs.forEach(e => addEventListener(e, stop, { once: true, passive: true }));
+  const landed = scrollY;
   setTimeout(() => {
-    evs.forEach(e => removeEventListener(e, stop));
-    if (touched || document.hidden) return;
+    // Any movement since landing, however it came (a link, the clock, a script), means the reader has found it.
+    if (touched || document.hidden || Math.abs(scrollY - landed) > 1) { evs.forEach(e => removeEventListener(e, stop)); return; }
     const y0 = scrollY, h = hourAtY(y0 + SH * 0.5), d = yAtHour(Math.min(h + 0.25, 23.9)) - yAtHour(h), t0 = performance.now(), dur = 2400;
+    let set = y0;
     const step = now => {
-      if (touched) return;
+      if (touched || Math.abs(scrollY - set) > 1) return;
       const k = clamp((now - t0) / dur, 0, 1);
-      scrollTo(0, y0 + d * Math.sin(Math.PI * ease(k)));
-      if (k < 1) requestAnimationFrame(step);
+      set = Math.round(y0 + d * Math.sin(Math.PI * ease(k)));
+      scrollTo(0, set);
+      if (k < 1) requestAnimationFrame(step); else evs.forEach(e => removeEventListener(e, stop));
     };
-    evs.forEach(e => addEventListener(e, stop, { once: true, passive: true }));
     requestAnimationFrame(step);
   }, 4000);
 }
@@ -914,13 +916,23 @@ function start() {
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
   paint(0, 0, 16);
-  // Only the arrival stage needs an eager image; native viewport loading handles
-  // subsequent scrolling. Never preload every lazy URL on desktop.
+  // The arrival stage's photo comes first, and the opening waits only for it.
   const arrival = items.reduce((a, b) => cdist(a.hour, target) < cdist(b.hour, target) ? a : b);
   const firstImage = arrival.el.querySelector('img');
   if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
+  // The rest of the gallery downloads behind the signature without holding the opening, in the order a reader
+  // scrolling on from here meets it (forward through the day, round past midnight), a few at a time.
+  const ahead = el => { const it = items.find(i => i.el.contains(el)); return it ? (it.hour - target + 24) % 24 : 24; };
+  const queue = [...document.images].filter(i => i.loading === 'lazy').sort((a, b) => ahead(a) - ahead(b));
+  const next = () => {
+    const img = queue.shift(); if (!img) return;
+    img.fetchPriority = 'low'; img.loading = 'eager';
+    let done = false; const on = () => { if (!done) { done = true; next(); } };
+    if (img.complete && img.naturalWidth) on(); else { img.addEventListener('load', on, { once: true }); img.addEventListener('error', on, { once: true }); }
+  };
+  for (let i = 0; i < 4; i++) next();
   // One line under the signature: the time here and the sky outside, written in as the signature finishes.
   const SAY = { fog: 'foggy', drizzle: 'drizzly', rain: 'raining', storm: 'stormy', snow: 'snowing' };
   const sayWeather = (d, h) => {
