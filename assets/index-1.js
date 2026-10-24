@@ -4,7 +4,7 @@ const day = document.getElementById('day');
 const clock = document.getElementById('clock');
 const rail = document.getElementById('rail');
 const skyEl = document.getElementById('sky');
-const ctx = skyEl.getContext('2d');
+let ctx = skyEl.getContext('2d');   // swapped for the ink's small canvas while the sky is sampled (skySample)
 const mobile = matchMedia('(max-width: 760px)');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BREATHE = true; // slow drift of the aurora distortion (set via JS, throttled) instead of per-frame SMIL
@@ -345,8 +345,7 @@ function drawWeather(h, t, dt, z, night) {
       if (k >= 1) bolt.t = -1; }
   }
   // falling weather
-  if (!wet || reduced) return;
-  window.skyInkClean?.(skyEl);   // the text reads the sky before snow and rain, so passing drops can't flicker it
+  if (!wet || reduced || sampling) return;   // the ink's reading stops here: the sky before snow and rain, so drops can't flicker it
   const snow = sky === 'snow', drizzle = sky === 'drizzle';
   const n = Math.round(drops.length * Math.min(1, (snow ? 0.55 : drizzle ? 0.5 : 0.7) * (0.35 + amount)) * s);
   const lean = clamp(wind / 60, 0, 0.6) * (snow ? 1.4 : 1), sec = dt / 1000;
@@ -376,6 +375,18 @@ function drawCrow(x, y, s, wing, alpha) {   // a silhouette; wing is the flap an
 }
 
 let W = 0, Hh = 0, dpr = 1;
+// The text's ink reads the sky from a second, tiny drawing of the same model, not from the big canvas's pixels: copying
+// those back costs most of a frame on a machine without a GPU. Nothing advances (dt is 0) and falling weather is left
+// out, so the reading is the sky as it stands behind the words. The strip below the drawn sky shows the horizon colour.
+let sampling = false;
+window.skySample = (small, w, h, hour, t) => {
+  const big = ctx; ctx = small.getContext('2d'); sampling = true;
+  try {
+    ctx.setTransform(w / W, 0, 0, h / innerHeight, 0, 0);
+    ctx.fillStyle = rgb(at(HOR, hour)); ctx.fillRect(0, 0, W, innerHeight);
+    drawSky(hour, t, 0);
+  } finally { ctx = big; sampling = false; }
+};
 function sizeSky() {
   dpr = Math.min(devicePixelRatio || 1, 1.5);
   W = innerWidth; Hh = SH; // the sky is drawn to the fixed height too; anything taller shows the horizon colour behind it
@@ -627,7 +638,7 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
-  window.skyInk?.(skyEl);
+  window.skyInk?.(skyEl, h, t);
 }
 function motion(t) {
   const H = vh();
