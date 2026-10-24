@@ -24,10 +24,11 @@ const SETTINGS = {
   // and the analytics beacon refuses an origin that isn't the site's.
   ...(LOCAL ? { skipAudits: ['is-on-https', 'redirects-http'], blockedUrlPatterns: ['*cloudflareinsights.com*'] } : {}),
 };
-// Bytes transferred on first load and timings in ms, per form factor.
+// Bytes transferred on first load and timings in ms, per form factor. The day page loads its whole gallery behind
+// the opening, so the totals cover every photo.
 const BUDGETS = {
-  mobile: { 'largest-contentful-paint': 4000, 'cumulative-layout-shift': 0.1, 'total-blocking-time': 300, script: 300_000, font: 400_000, total: 6_000_000 },
-  desktop: { 'largest-contentful-paint': 2500, 'cumulative-layout-shift': 0.1, 'total-blocking-time': 200, script: 300_000, font: 400_000, total: 8_000_000 },
+  mobile: { 'largest-contentful-paint': 4000, 'cumulative-layout-shift': 0.1, 'total-blocking-time': 300, script: 300_000, font: 400_000, total: 14_000_000 },
+  desktop: { 'largest-contentful-paint': 2500, 'cumulative-layout-shift': 0.1, 'total-blocking-time': 200, script: 300_000, font: 400_000, total: 18_000_000 },
 };
 // Lighthouse won't score a page that answers 404, so the 404 page is left to the browser tests.
 const PATHS = ['/', '/work', '/privacy'];
