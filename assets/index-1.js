@@ -593,8 +593,19 @@ const hourAtY = y => {
   const [yl, hl] = keys[keys.length - 1];
   return hl + (y - yl) / vh();
 };
-// Arrive exactly at the hour it is: the clock, read at the middle of the screen, says now.
-const landY = h => Math.max(0, yAtHour(h) - SH * 0.5);
+// Arrive at the head of whatever piece the hour falls in, or of the next one down when it falls between two, never
+// partway through a poem or a gallery. A pinned stage starts where its pin takes hold; anything else gets a little room.
+const landY = h => {
+  const y = yAtHour(h);
+  let head = null, pinned = false;
+  for (const it of items) {
+    const r = it.el.getBoundingClientRect(), top = r.top + scrollY;
+    if (y >= top && y <= top + r.height) { head = top; pinned = !!it.pin; break; }
+    if (top > y && (head === null || top < head)) { head = top; pinned = !!it.pin; }
+  }
+  if (head === null) return Math.max(0, y - SH * 0.5);
+  return Math.max(0, head - (pinned ? 0 : Math.round(SH * 0.12)));
+};
 const yAtHour = h => {
   if (!keys.length) return 0;
   if (h <= keys[0][1]) return keys[0][0];
@@ -626,9 +637,10 @@ function paint(h, t, dt) {
   st.setProperty('--ink-rgb', ink.join(', '));
   st.setProperty('--sky', rgb(s.o));
   st.setProperty('--sky-z', rgb(s.z));
-  const near = Math.abs(((h - nowHour() + 12) % 24 + 24) % 24 - 12) < 0.2;
-  clock.innerHTML = `${fmt(h)}${near ? '<i>now</i>' : ''}`;
-  const cur = Math.round(((h % 24) + 24) % 24) % 24;
+  // The clock and the rail show the hour plus whatever the landing still owes (lie, below).
+  const shown = h + lie, near = Math.abs(((shown - nowHour() + 12) % 24 + 24) % 24 - 12) < 0.2;
+  clock.innerHTML = `${fmt(shown)}${near ? '<i>now</i>' : ''}`;
+  const cur = Math.round(((shown % 24) + 24) % 24) % 24;
   ticks.forEach((b, i) => b.classList.toggle('on', i === cur));
   const dark = 1 - k;
   const up = s.sunA > 0.02;
@@ -709,6 +721,11 @@ function motion(t) {
   }
 }
 let lastFrame = 0, prevY = 0, shownHour = null;
+// The visit lands at the head of a piece, a few minutes off the exact hour, yet the clock says now. The difference is
+// owed, and paid back a little at a time as the reader scrolls: a quarter of each move, so it's never seen. The hint's
+// drift doesn't count; only the reader's own hand does.
+let lie = 0, handOn = false;
+['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(e => addEventListener(e, () => { handOn = true; }, { once: true, passive: true }));
 function loop() {
   const L = loopLen(), y = scrollY;
   if (y > botClone.offsetTop + 8 && y > prevY) { scrollTo({ top: y - L, behavior: 'instant' }); lastHour = -1; }
@@ -719,7 +736,8 @@ function frame(t) {
   const dt = lastFrame ? Math.min(100, t - lastFrame) : 16; lastFrame = t;
   if (!booting) {
     if (lightI < 0) loop();
-    const h = shownHour = hourAtY(scrollY + SH * 0.5);
+    const was = shownHour, h = shownHour = hourAtY(scrollY + SH * 0.5);
+    if (lie && handOn && was !== null) { const d = Math.abs(h - was) * 0.25; lie = Math.abs(lie) <= d ? 0 : lie - Math.sign(lie) * d; }
     const night = lum(at(ZEN, h)) < 0.2;
     const twilight = Math.abs(Math.sin((h - 6) / 12 * Math.PI) + 0.08) < 0.3;
     if (Math.abs(h - lastHour) > 0.0015 || night || twilight || wxStrength(h) > 0) { lastHour = h; paint(h, t, dt); }
@@ -979,6 +997,7 @@ function start() {
     layout();
     scrollTo(0, landY(target));
     layout();
+    lie = target - hourAtY(scrollY + SH * 0.5);
     // Everything at the landing is placed and lit under the veil, and kept placed through the sweep, so the day is
     // already standing where it belongs as the veil lifts; nothing moves into position afterwards.
     items.forEach(it => io.observe(it.el));
@@ -997,6 +1016,7 @@ function start() {
     Promise.all([sweepDone, loaded]).then(() => {
       layout();
       scrollTo(0, landY(target));
+      lie = target - hourAtY(scrollY + SH * 0.5);
       motion(performance.now());
       document.body.classList.add('ready');
       setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; if (!fast) hintScroll(); })); }, q.has('fast') ? 0 : 350);
