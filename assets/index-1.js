@@ -327,11 +327,13 @@ function drawWeather(h, t, dt, z, night) {
   const wet = sky === 'rain' || sky === 'drizzle' || sky === 'storm' || sky === 'snow';
   // overcast: a grey lid that hides the sun, moon and stars in proportion to cover
   const lid = s * Math.min(0.85, cloud * 0.5 + (wet ? 0.22 + amount * 0.2 : 0) + (sky === 'fog' ? 0.15 : 0));
-  if (lid > 0.01) { const grey = night > 0.5 ? [28, 30, 38] : [150, 156, 166], top = mix(z, grey, 0.75);
+  // Weather colours follow the dark of the sky gradually, so a heavy lid can't jump from night grey to day grey.
+  const byNight = (day, dark) => mix(day, dark, night).map(Math.round);
+  if (lid > 0.01) { const grey = byNight([150, 156, 166], [28, 30, 38]), top = mix(z, grey, 0.75);
     const g = ctx.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, `rgba(${top.map(Math.round)},${lid.toFixed(3)})`); g.addColorStop(1, `rgba(${grey},${(lid * 0.7).toFixed(3)})`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh); }
-  if (haze > 0) { ctx.fillStyle = `rgba(${night > 0.5 ? '60,58,62' : '214,204,186'},${(s * haze * 0.4).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
-  if (sky === 'fog') { const g = ctx.createLinearGradient(0, Hh * 0.25, 0, Hh); const c = night > 0.5 ? '70,74,84' : '226,228,230';
+  if (haze > 0) { ctx.fillStyle = `rgba(${byNight([214, 204, 186], [60, 58, 62])},${(s * haze * 0.4).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
+  if (sky === 'fog') { const g = ctx.createLinearGradient(0, Hh * 0.25, 0, Hh); const c = byNight([226, 228, 230], [70, 74, 84]);
     g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(0.6, `rgba(${c},${(s * amount * 0.55).toFixed(3)})`); g.addColorStop(1, `rgba(${c},${(s * amount * 0.8).toFixed(3)})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh); }
   // storm: real lightning, a whole-sky flash and a forked bolt
   if (sky === 'storm' && !reduced) {
@@ -344,10 +346,11 @@ function drawWeather(h, t, dt, z, night) {
   }
   // falling weather
   if (!wet || reduced) return;
+  window.skyInkClean?.(skyEl);   // the text reads the sky before snow and rain, so passing drops can't flicker it
   const snow = sky === 'snow', drizzle = sky === 'drizzle';
   const n = Math.round(drops.length * Math.min(1, (snow ? 0.55 : drizzle ? 0.5 : 0.7) * (0.35 + amount)) * s);
   const lean = clamp(wind / 60, 0, 0.6) * (snow ? 1.4 : 1), sec = dt / 1000;
-  const col = night > 0.5 ? (snow ? '240,242,250' : '190,200,220') : (snow ? '255,255,255' : '120,130,150');
+  const col = snow ? byNight([255, 255, 255], [240, 242, 250]) : byNight([120, 130, 150], [190, 200, 220]);
   ctx.strokeStyle = `rgba(${col},${(snow ? 0.9 : drizzle ? 0.35 : 0.45) * s})`; ctx.fillStyle = `rgba(${col},${0.85 * s})`;
   ctx.lineWidth = drizzle ? 0.7 : 1; ctx.lineCap = 'round'; ctx.beginPath();
   for (let i = 0; i < n; i++) {
@@ -624,6 +627,7 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
+  window.skyInk?.(skyEl);
 }
 function motion(t) {
   const H = vh();
