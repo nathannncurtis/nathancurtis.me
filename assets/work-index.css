@@ -39,7 +39,7 @@
   #cur.text span { transform: translate(-50%, -55%) scaleY(1.25); }
   .text { min-width: 0; }
   .para { margin-bottom: 14px; }
-  .ln { display: block; height: 27px; white-space: pre; }
+  .ln { display: block; min-height: 27px; white-space: pre-wrap; }
   .bar { display: block; height: 27px; position: relative; }
   .bar::after { content: ""; position: absolute; left: 0; top: 7px; height: 14px; width: var(--w); background: var(--bar); border-radius: 1px; transform-origin: left; }
   .lead .ln { color: var(--ink); }

@@ -4,8 +4,10 @@ import { OUTSIDE } from './pages.mjs';
 
 // Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
 const ACCEPTED_AXE = [
-  // The day page and /work colour their text from the sky or a muted ink; contrast is a deliberate look, not a bug.
-  { rule: 'color-contrast', path: '/', target: /./ },
+  // The day page paints its text from the sky canvas, which axe can't see; home-ink.spec.mjs reads the real sky behind
+  // each of those lines instead. Any other text on the page is still held to axe's contrast check.
+  { rule: 'color-contrast', path: '/', skyInk: true },
+  // /work colours its text with a muted ink; contrast is a deliberate look, not a bug.
   { rule: 'color-contrast', path: '/work', target: /./ },
   { rule: 'color-contrast', path: '/privacy', target: /./ },
   { rule: 'color-contrast', path: '/no-such-page', target: /./ },
@@ -68,7 +70,14 @@ export async function visit(page, base, { path, status }, { axe = true } = {}) {
   if (axe) {
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
     for (const v of r.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')) {
-      const nodes = v.nodes.map(n => n.target.join(' ')).filter(t => !ACCEPTED_AXE.some(a => a.rule === v.id && a.path === path && a.target.test(t)));
+      const nodes = [];
+      for (const n of v.nodes) {
+        const t = n.target.join(' ');
+        const accepted = ACCEPTED_AXE.filter(a => a.rule === v.id && a.path === path);
+        if (accepted.some(a => a.target?.test(t))) continue;
+        if (accepted.some(a => a.skyInk) && await page.locator(n.target[0]).first().evaluate(el => !!el.closest('[data-sky-ink]')).catch(() => false)) continue;
+        nodes.push(t);
+      }
       if (nodes.length) problems.push(`axe ${v.impact}: ${v.id} (${v.help}) at ${nodes.slice(0, 3).join(', ')}`);
     }
   }

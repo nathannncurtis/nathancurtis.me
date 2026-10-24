@@ -316,7 +316,7 @@ const wxForce = (() => { const v = new URLSearchParams(location.search).get('wx'
   if (sky === 'clear') return { ...base, amount: 0 };
   return { ...base, cloud: sky === 'fog' ? 0.6 : 0.9, wind: sky === 'storm' ? 35 : sky === 'snow' ? 8 : 15 }; })();
 if (wxForce) WX = wxForce;
-else fetch(SKY_URL, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.sky && d.sky !== 'unknown') WX = d; }).catch(() => {});
+const weatherReady = wxForce ? Promise.resolve(wxForce) : fetch(SKY_URL, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.sky && d.sky !== 'unknown') WX = d; return WX; }).catch(() => null);
 const drops = Array.from({ length: 420 }, () => ({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 0.8, p: Math.random() * 6.28 }));
 let bolt = { t: -1 }, nextBolt = 4000;
 let wxAll = !!wxForce;
@@ -327,11 +327,13 @@ function drawWeather(h, t, dt, z, night) {
   const wet = sky === 'rain' || sky === 'drizzle' || sky === 'storm' || sky === 'snow';
   // overcast: a grey lid that hides the sun, moon and stars in proportion to cover
   const lid = s * Math.min(0.85, cloud * 0.5 + (wet ? 0.22 + amount * 0.2 : 0) + (sky === 'fog' ? 0.15 : 0));
-  if (lid > 0.01) { const grey = night > 0.5 ? [28, 30, 38] : [150, 156, 166], top = mix(z, grey, 0.75);
+  // Weather colours follow the dark of the sky gradually, so a heavy lid can't jump from night grey to day grey.
+  const byNight = (day, dark) => mix(day, dark, night).map(Math.round);
+  if (lid > 0.01) { const grey = byNight([150, 156, 166], [28, 30, 38]), top = mix(z, grey, 0.75);
     const g = ctx.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, `rgba(${top.map(Math.round)},${lid.toFixed(3)})`); g.addColorStop(1, `rgba(${grey},${(lid * 0.7).toFixed(3)})`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh); }
-  if (haze > 0) { ctx.fillStyle = `rgba(${night > 0.5 ? '60,58,62' : '214,204,186'},${(s * haze * 0.4).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
-  if (sky === 'fog') { const g = ctx.createLinearGradient(0, Hh * 0.25, 0, Hh); const c = night > 0.5 ? '70,74,84' : '226,228,230';
+  if (haze > 0) { ctx.fillStyle = `rgba(${byNight([214, 204, 186], [60, 58, 62])},${(s * haze * 0.4).toFixed(3)})`; ctx.fillRect(0, 0, W, Hh); }
+  if (sky === 'fog') { const g = ctx.createLinearGradient(0, Hh * 0.25, 0, Hh); const c = byNight([226, 228, 230], [70, 74, 84]);
     g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(0.6, `rgba(${c},${(s * amount * 0.55).toFixed(3)})`); g.addColorStop(1, `rgba(${c},${(s * amount * 0.8).toFixed(3)})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh); }
   // storm: real lightning, a whole-sky flash and a forked bolt
   if (sky === 'storm' && !reduced) {
@@ -344,10 +346,11 @@ function drawWeather(h, t, dt, z, night) {
   }
   // falling weather
   if (!wet || reduced) return;
+  window.skyInkClean?.(skyEl);   // the text reads the sky before snow and rain, so passing drops can't flicker it
   const snow = sky === 'snow', drizzle = sky === 'drizzle';
   const n = Math.round(drops.length * Math.min(1, (snow ? 0.55 : drizzle ? 0.5 : 0.7) * (0.35 + amount)) * s);
   const lean = clamp(wind / 60, 0, 0.6) * (snow ? 1.4 : 1), sec = dt / 1000;
-  const col = night > 0.5 ? (snow ? '240,242,250' : '190,200,220') : (snow ? '255,255,255' : '120,130,150');
+  const col = snow ? byNight([255, 255, 255], [240, 242, 250]) : byNight([120, 130, 150], [190, 200, 220]);
   ctx.strokeStyle = `rgba(${col},${(snow ? 0.9 : drizzle ? 0.35 : 0.45) * s})`; ctx.fillStyle = `rgba(${col},${0.85 * s})`;
   ctx.lineWidth = drizzle ? 0.7 : 1; ctx.lineCap = 'round'; ctx.beginPath();
   for (let i = 0; i < n; i++) {
@@ -624,6 +627,7 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
+  window.skyInk?.(skyEl);
 }
 function motion(t) {
   const H = vh();
@@ -849,6 +853,7 @@ clock.onclick = () => scrollTo({ top: yAtHour(nowHour()) - SH * 0.5, behavior: r
 const boot = document.getElementById('boot');
 const sigSvg = document.getElementById('sig');
 const logo = document.getElementById('logo');
+const openingNote = document.getElementById('opening-note');
 function signature() {
   const S = window.SIG;
   const paths = S.paths.map(p => `<path d="${p.d}" stroke-width="${p.w}"/>`).join('');
@@ -858,7 +863,7 @@ function signature() {
   logo.innerHTML = paths;
   const ps = [...sigSvg.querySelectorAll('path')];
   const total = ps.reduce((a, p) => a + p.getTotalLength(), 0);
-  const speed = 1700 / total;
+  const speed = 1450 / total;
   let t = 0;
   ps.forEach(p => {
     const L = p.getTotalLength();
@@ -870,29 +875,92 @@ function signature() {
   return t;
 }
 function flyLogo() {
+  return new Promise(resolve => {
   const from = sigSvg.getBoundingClientRect(), to = logo.getBoundingClientRect();
   const sx = to.width / from.width;
   const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
   const a = sigSvg.animate([{ transform: 'translate(-50%, -50%)' }, { transform: `translate(calc(-50% + ${dx.toFixed(2)}px), calc(-50% + ${dy.toFixed(2)}px)) scale(${sx.toFixed(4)})` }], { duration: 900, easing: 'cubic-bezier(.6,0,.2,1)', fill: 'forwards' });
-  a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; };
+  a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; resolve(); };
+  });
 }
 function preloadAll() {
   const urls = [...new Set([...document.images].filter(i => i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
   return Promise.all(urls.map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u; im.decode?.().then(r, r); })));
+}
+// If nobody has scrolled a few seconds after landing, the day drifts forward a quarter hour and settles back,
+// showing that scrolling moves the clock and the sky. Once, and never against the reader's hand.
+function hintScroll() {
+  if (reduced) return;
+  let touched = false;
+  const stop = () => { touched = true; };
+  const evs = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+  evs.forEach(e => addEventListener(e, stop, { once: true, passive: true }));
+  const landed = scrollY;
+  setTimeout(() => {
+    // Any movement since landing, however it came (a link, the clock, a script), means the reader has found it.
+    if (touched || document.hidden || Math.abs(scrollY - landed) > 1) { evs.forEach(e => removeEventListener(e, stop)); return; }
+    const y0 = scrollY, h = hourAtY(y0 + SH * 0.5), d = yAtHour(Math.min(h + 0.25, 23.9)) - yAtHour(h), t0 = performance.now(), dur = 2400;
+    let set = y0;
+    const step = now => {
+      if (touched || Math.abs(scrollY - set) > 1) return;
+      const k = clamp((now - t0) / dur, 0, 1);
+      set = Math.round(y0 + d * Math.sin(Math.PI * ease(k)));
+      scrollTo(0, set);
+      if (k < 1) requestAnimationFrame(step); else evs.forEach(e => removeEventListener(e, stop));
+    };
+    requestAnimationFrame(step);
+  }, 4000);
 }
 function start() {
   sizeSky();
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
   paint(0, 0, 16);
-  // Only the arrival stage needs an eager image; native viewport loading handles
-  // subsequent scrolling. Never preload every lazy URL on desktop.
+  // The arrival stage's photo comes first, and the opening waits only for it.
   const arrival = items.reduce((a, b) => cdist(a.hour, target) < cdist(b.hour, target) ? a : b);
   const firstImage = arrival.el.querySelector('img');
   if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
-  const sweepStart = new Promise(r => setTimeout(r, q.has('fast') ? 50 : drawn * 0.72));
+  // Once the arrival photo is in, the rest of the gallery downloads behind the signature without holding the
+  // opening, in the order a reader scrolling on from here meets it (forward through the day, round past midnight),
+  // a few at a time. Starting earlier would make the photo the opening waits for share a slow connection.
+  const ahead = el => { const it = items.find(i => i.el.contains(el)); return it ? (it.hour - target + 24) % 24 : 24; };
+  const queue = [...document.images].filter(i => i.loading === 'lazy').sort((a, b) => ahead(a) - ahead(b));
+  const next = () => {
+    const img = queue.shift(); if (!img) return;
+    img.fetchPriority = 'low'; img.loading = 'eager';
+    let done = false; const on = () => { if (!done) { done = true; next(); } };
+    if (img.complete && img.naturalWidth) on(); else { img.addEventListener('load', on, { once: true }); img.addEventListener('error', on, { once: true }); }
+  };
+  loaded.then(() => { for (let i = 0; i < 4; i++) next(); });
+  // One line under the signature: the time here and the sky outside, written in as the signature finishes.
+  const SAY = { fog: 'foggy', drizzle: 'drizzly', rain: 'raining', storm: 'stormy', snow: 'snowing' };
+  const sayWeather = (d, h) => {
+    if (!d || !d.sky || d.sky === 'unknown') return '';
+    const what = d.sky === 'clear' ? (d.cloud > .68 ? 'overcast' : d.cloud > .28 ? 'cloudy' : 'clear') : SAY[d.sky];
+    return what ? `${what} ${h >= 5 && h < 17 ? 'today' : 'tonight'}` : '';
+  };
+  const fast = q.has('fast');
+  const writeLine = new Promise(resolve => setTimeout(async () => {
+    const now = new Date(), hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const w = await Promise.race([weatherReady.then(d => sayWeather(d, now.getHours() + now.getMinutes() / 60)), new Promise(r => setTimeout(() => r(''), 300))]);
+    openingNote.textContent = w ? `${hhmm} where you are; ${w}.` : `${hhmm} where you are.`;
+    const sig = sigSvg.getBoundingClientRect();
+    openingNote.style.top = `${Math.round(sig.bottom + Math.min(28, sig.height * 0.3))}px`;
+    openingNote.classList.add('on');
+    if (reduced || fast) return resolve();
+    // A soft edge moves left to right across the line, the way the pen moves across the signature.
+    openingNote.style.maskImage = openingNote.style.webkitMaskImage = 'linear-gradient(90deg, #000 40%, transparent 60%)';
+    openingNote.style.maskSize = openingNote.style.webkitMaskSize = '250% 100%';
+    const a = openingNote.animate([{ maskPosition: '100% 0', webkitMaskPosition: '100% 0' }, { maskPosition: '0 0', webkitMaskPosition: '0 0' }], { duration: 900, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    a.onfinish = resolve;
+  }, fast ? 0 : drawn * 0.7));
+  // The line holds long enough to read, then the sky comes up behind it while the signature goes to its corner.
+  const sweepStart = writeLine.then(() => new Promise(r => setTimeout(r, fast ? 0 : 600))).then(() => {
+    if (!fast) openingNote.animate([{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(3px)' }], { duration: 900, easing: 'ease-in', fill: 'forwards' });
+    flyLogo();
+  });
   sweepStart.then(() => {
     layout();
     scrollTo(0, landY(target));
@@ -912,7 +980,7 @@ function start() {
       scrollTo(0, landY(target));
       document.body.classList.add('ready');
       items.forEach(it => io.observe(it.el));
-      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { flyLogo(); booting = false; lastHour = -1; })); }, q.has('fast') ? 0 : 350);
+      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; if (!fast) hintScroll(); })); }, q.has('fast') ? 0 : 350);
     });
   });
 }

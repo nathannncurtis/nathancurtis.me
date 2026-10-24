@@ -15,7 +15,7 @@ main { position: relative; z-index: 1; min-height: 100vh; display: grid; place-i
 .code { font-size: clamp(96px, 18vw, 220px); line-height: 1; font-weight: 400; font-style: italic; opacity: .14; letter-spacing: -.02em; margin: 0 0 .08em; font-variant-numeric: tabular-nums; }
 h1 { font-weight: 400; font-size: clamp(26px, 3.2vw, 40px); margin: 0 0 .35em; }
 p { max-width: 30em; margin: 0 auto; opacity: .8; }
-p.note { font-style: italic; font-size: 15px; opacity: .55; margin-top: 1.2em; }
+p.note { font-style: italic; font-size: 15px; margin-top: 1.2em; }
 .go { display: inline-block; margin-top: 2.2em; font-style: italic; border-bottom: 1px solid rgba(var(--ink-rgb), .35); padding-bottom: 1px; opacity: .9; }
 .go:hover { border-color: currentColor; opacity: 1; }
 .sh { box-shadow: 0 6px 40px rgba(0, 0, 0, var(--sa, .3)); }

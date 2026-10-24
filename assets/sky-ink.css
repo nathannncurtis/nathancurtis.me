@@ -1,0 +1,12 @@
+/* Text is painted with the ink map for its side, clipped to its glyphs. */
+.sky-ink { color: transparent !important; -webkit-background-clip: text; background-clip: text; background-repeat: no-repeat; }
+#logo path { stroke: var(--logo-ink, var(--ink)); }
+#rail b { background: var(--rail-ink, currentColor) 0 0 / 100vw 100vh fixed no-repeat; }
+#rail b[data-l]::after { color: transparent; background: var(--rail-ink) 0 0 / 100vw 100vh fixed no-repeat; -webkit-background-clip: text; background-clip: text; }
+/* Every line is computed to be legible as drawn, so the resting fades come off. */
+#work, #priv, #clock i, .cap, .st:hover .cap, .k-lights h3, .k-frieze h3, .k-turn h3, .po h2, .po.lit .ln small, .mu h2 i, .mu li span:last-child, .mu .ctl button, #rail b, #rail b[data-l]::after, #light .k { opacity: 1; }
+/* A soft shadow under the letters, the opposite of their side. */
+.sky-ink.on-light { filter: drop-shadow(0 0 2.5px rgba(16, 12, 8, .55)); }
+.sky-ink.on-dark { filter: drop-shadow(0 0 2.5px rgba(255, 248, 236, .5)); }
+/* The local dimming of the sky sits just above the sky. */
+#shade { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }

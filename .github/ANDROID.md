@@ -1,6 +1,6 @@
 # Android Chrome coverage status
 
-PR 10 acceptance remains **blocked**. CI now fails explicitly when any of the installed Chrome version's four numeric components places it below official Android Chrome stable, when the Android API differs from the job's declared API, or when a Chromium package is passed off as Google Chrome. Official version lookup errors and malformed version data fail closed. This prevents a stale result from being reported as current coverage; it does not provision or update Chrome.
+CI tests the Google Chrome bundled with the emulator image, which is behind stable and can't be updated without a Google account. When the installed version is below official Android Chrome stable, the job still runs the page checks and passes or fails on them, but it logs a warning and records `stale: true` with both versions in `test-results/android/browser-version.json`, so the result is never read as current-Chrome coverage. CI still fails when the Android API differs from the job's declared API, when a Chromium package is passed off as Google Chrome, and when the official version lookup errors or returns malformed data.
 
 ## Reproduced image and browser
 

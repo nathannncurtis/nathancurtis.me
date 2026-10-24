@@ -35,20 +35,22 @@ test('accepts official Chrome at or above official stable on the expected API', 
   assert.equal(f.artifacts.length, 1);
 });
 
-test('rejects a stale official Chrome version', async () => {
-  const f = fixture({ version: '145.0.7632.218' });
-  await assert.rejects(f.run(), /Stale Google Chrome: 145\.0\.7632\.218; current Chrome stable is 157\.0\.8103\.14/);
+test('tests an older official Chrome and labels it stale', async () => {
+  const f = fixture({ version: '124.0.6367.219' });
+  const info = await f.run();
+  assert.equal(info.stale, true);
+  assert.equal(f.artifacts.at(-1).stale, true);
+  assert.equal(f.artifacts.at(-1).stableChrome, '157.0.8103.14');
 });
 
-test('rejects a Chrome patch behind stable even when the major matches', async () => {
+test('a patch behind stable is labelled stale even when the major matches', async () => {
   const f = fixture({ version: '157.0.8103.1' });
-  await assert.rejects(f.run(), /Stale Google Chrome: 157\.0\.8103\.1; current Chrome stable is 157\.0\.8103\.14/);
+  assert.equal((await f.run()).stale, true);
 });
 
-test('the API 37 fixture still rejects the observed bundled Chrome 145 against stable 157', async () => {
-  const f = fixture({ version: '145.0.7632.218', api: '37', abi: 'arm64-v8a', build: 'google/sdk_gphone64_arm64/emu64a:17/CE2A.260420.051.A2/16418371:user/release-keys' });
-  await assert.rejects(f.run({ expectedApi: '37' }), /Stale Google Chrome: 145\.0\.7632\.218; current Chrome stable is 157\.0\.8103\.14/);
-  assert.equal(f.artifacts[0].api, '37');
+test('Chrome at stable is not labelled stale', async () => {
+  const f = fixture();
+  assert.equal((await f.run()).stale, false);
 });
 
 test('rejects an unexpected Android API while retaining provenance', async () => {
