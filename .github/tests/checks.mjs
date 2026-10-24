@@ -11,6 +11,9 @@ const ACCEPTED_AXE = [
   { rule: 'color-contrast', path: '/work', target: /./ },
   { rule: 'color-contrast', path: '/privacy', target: /./ },
   { rule: 'color-contrast', path: '/no-such-page', target: /./ },
+  // The status pages draw the day page's sky and ink their text from it; axe reads the html colour behind the canvas
+  // instead. home-ink.spec.mjs holds every line to the sky actually drawn behind it, hour by hour.
+  ...['200', '301', '403', '410', '500', '503'].map(s => ({ rule: 'color-contrast', path: `/status/${s}.html`, target: /./ })),
 ];
 
 export async function stubAnalytics(page) {

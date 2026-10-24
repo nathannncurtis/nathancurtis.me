@@ -4,7 +4,7 @@ const day = document.getElementById('day');
 const clock = document.getElementById('clock');
 const rail = document.getElementById('rail');
 const skyEl = document.getElementById('sky');
-const ctx = skyEl.getContext('2d');
+let ctx = skyEl.getContext('2d');   // swapped for the ink's small canvas while the sky is sampled (skySample)
 const mobile = matchMedia('(max-width: 760px)');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BREATHE = true; // slow drift of the aurora distortion (set via JS, throttled) instead of per-frame SMIL
@@ -345,8 +345,7 @@ function drawWeather(h, t, dt, z, night) {
       if (k >= 1) bolt.t = -1; }
   }
   // falling weather
-  if (!wet || reduced) return;
-  window.skyInkClean?.(skyEl);   // the text reads the sky before snow and rain, so passing drops can't flicker it
+  if (!wet || reduced || sampling) return;   // the ink's reading stops here: the sky before snow and rain, so drops can't flicker it
   const snow = sky === 'snow', drizzle = sky === 'drizzle';
   const n = Math.round(drops.length * Math.min(1, (snow ? 0.55 : drizzle ? 0.5 : 0.7) * (0.35 + amount)) * s);
   const lean = clamp(wind / 60, 0, 0.6) * (snow ? 1.4 : 1), sec = dt / 1000;
@@ -376,6 +375,18 @@ function drawCrow(x, y, s, wing, alpha) {   // a silhouette; wing is the flap an
 }
 
 let W = 0, Hh = 0, dpr = 1;
+// The text's ink reads the sky from a second, tiny drawing of the same model, not from the big canvas's pixels: copying
+// those back costs most of a frame on a machine without a GPU. Nothing advances (dt is 0) and falling weather is left
+// out, so the reading is the sky as it stands behind the words. The strip below the drawn sky shows the horizon colour.
+let sampling = false;
+window.skySample = (small, w, h, hour, t) => {
+  const big = ctx; ctx = small.getContext('2d'); sampling = true;
+  try {
+    ctx.setTransform(w / W, 0, 0, h / innerHeight, 0, 0);
+    ctx.fillStyle = rgb(at(HOR, hour)); ctx.fillRect(0, 0, W, innerHeight);
+    drawSky(hour, t, 0);
+  } finally { ctx = big; sampling = false; }
+};
 function sizeSky() {
   dpr = Math.min(devicePixelRatio || 1, 1.5);
   W = innerWidth; Hh = SH; // the sky is drawn to the fixed height too; anything taller shows the horizon colour behind it
@@ -582,8 +593,19 @@ const hourAtY = y => {
   const [yl, hl] = keys[keys.length - 1];
   return hl + (y - yl) / vh();
 };
-// Arrive exactly at the hour it is: the clock, read at the middle of the screen, says now.
-const landY = h => Math.max(0, yAtHour(h) - SH * 0.5);
+// Arrive at the head of whatever piece the hour falls in, or of the next one down when it falls between two, never
+// partway through a poem or a gallery. A pinned stage starts where its pin takes hold; anything else gets a little room.
+const landY = h => {
+  const y = yAtHour(h);
+  let head = null, pinned = false;
+  for (const it of items) {
+    const r = it.el.getBoundingClientRect(), top = r.top + scrollY;
+    if (y >= top && y <= top + r.height) { head = top; pinned = !!it.pin; break; }
+    if (top > y && (head === null || top < head)) { head = top; pinned = !!it.pin; }
+  }
+  if (head === null) return Math.max(0, y - SH * 0.5);
+  return Math.max(0, head - (pinned ? 0 : Math.round(SH * 0.12)));
+};
 const yAtHour = h => {
   if (!keys.length) return 0;
   if (h <= keys[0][1]) return keys[0][0];
@@ -603,7 +625,7 @@ const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting
 let pointer = { x: innerWidth / 2, y: innerHeight / 2 };
 addEventListener('pointermove', e => { pointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
 
-let lastHour = -1, booting = true;
+let lastHour = -1, booting = true, landing = null;   // landing: the hour the opening sweeps to
 const fmt = h => { const hh = Math.floor(((h % 24) + 24) % 24), mm = Math.floor((((h % 1) + 1) % 1) * 60); return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`; };
 const nowHour = () => { const d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; };
 function paint(h, t, dt) {
@@ -615,9 +637,10 @@ function paint(h, t, dt) {
   st.setProperty('--ink-rgb', ink.join(', '));
   st.setProperty('--sky', rgb(s.o));
   st.setProperty('--sky-z', rgb(s.z));
-  const near = Math.abs(((h - nowHour() + 12) % 24 + 24) % 24 - 12) < 0.2;
-  clock.innerHTML = `${fmt(h)}${near ? '<i>now</i>' : ''}`;
-  const cur = Math.round(((h % 24) + 24) % 24) % 24;
+  // The clock and the rail show the hour plus whatever the landing still owes (lie, below).
+  const shown = h + lie, near = Math.abs(((shown - nowHour() + 12) % 24 + 24) % 24 - 12) < 0.2;
+  clock.innerHTML = `${fmt(shown)}${near ? '<i>now</i>' : ''}`;
+  const cur = Math.round(((shown % 24) + 24) % 24) % 24;
   ticks.forEach((b, i) => b.classList.toggle('on', i === cur));
   const dark = 1 - k;
   const up = s.sunA > 0.02;
@@ -627,7 +650,9 @@ function paint(h, t, dt) {
   st.setProperty('--sx', sx.toFixed(1) + 'px'); st.setProperty('--sy', sy.toFixed(1) + 'px'); st.setProperty('--sb', sb.toFixed(0) + 'px');
   st.setProperty('--sh', up ? '40, 25, 10' : '0, 0, 0'); st.setProperty('--sa', (0.22 + 0.38 * dark).toFixed(2));
   st.setProperty('--b', (1 - 0.14 * dark).toFixed(3)); st.setProperty('--c', (1 + 0.06 * dark).toFixed(3));
-  window.skyInk?.(skyEl);
+  // While the opening sweeps the sky up from midnight, the text is inked for the hour it lands on, not for each
+  // hour passing behind it, so nothing changes side as the day comes up.
+  window.skyInk?.(skyEl, booting && landing !== null ? landing : h, t);
 }
 function motion(t) {
   const H = vh();
@@ -696,6 +721,11 @@ function motion(t) {
   }
 }
 let lastFrame = 0, prevY = 0, shownHour = null;
+// The visit lands at the head of a piece, a few minutes off the exact hour, yet the clock says now. The difference is
+// owed, and paid back a little at a time as the reader scrolls: a quarter of each move, so it's never seen. The hint's
+// drift doesn't count; only the reader's own hand does.
+let lie = 0, handOn = false;
+['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(e => addEventListener(e, () => { handOn = true; }, { once: true, passive: true }));
 function loop() {
   const L = loopLen(), y = scrollY;
   if (y > botClone.offsetTop + 8 && y > prevY) { scrollTo({ top: y - L, behavior: 'instant' }); lastHour = -1; }
@@ -706,7 +736,8 @@ function frame(t) {
   const dt = lastFrame ? Math.min(100, t - lastFrame) : 16; lastFrame = t;
   if (!booting) {
     if (lightI < 0) loop();
-    const h = shownHour = hourAtY(scrollY + SH * 0.5);
+    const was = shownHour, h = shownHour = hourAtY(scrollY + SH * 0.5);
+    if (lie && handOn && was !== null) { const d = Math.abs(h - was) * 0.25; lie = Math.abs(lie) <= d ? 0 : lie - Math.sign(lie) * d; }
     const night = lum(at(ZEN, h)) < 0.2;
     const twilight = Math.abs(Math.sin((h - 6) / 12 * Math.PI) + 0.08) < 0.3;
     if (Math.abs(h - lastHour) > 0.0015 || night || twilight || wxStrength(h) > 0) { lastHour = h; paint(h, t, dt); }
@@ -915,6 +946,7 @@ function start() {
   sizeSky();
   const q = new URLSearchParams(location.search);
   const target = q.has('hour') ? +q.get('hour') : nowHour();
+  landing = target;
   paint(0, 0, 16);
   // The arrival stage's photo comes first, and the opening waits only for it.
   const arrival = items.reduce((a, b) => cdist(a.hour, target) < cdist(b.hour, target) ? a : b);
@@ -965,12 +997,18 @@ function start() {
     layout();
     scrollTo(0, landY(target));
     layout();
+    lie = target - hourAtY(scrollY + SH * 0.5);
+    // Everything at the landing is placed and lit under the veil, and kept placed through the sweep, so the day is
+    // already standing where it belongs as the veil lifts; nothing moves into position afterwards.
+    items.forEach(it => io.observe(it.el));
+    motion(performance.now());
     boot.classList.add('off');
     const t0 = performance.now(), dur = q.has('fast') ? 0 : 1800;
     const sweepDone = new Promise(res => {
       const sweep = now => {
         const k = dur ? ease(clamp((now - t0) / dur, 0, 1)) : 1;
         paint(target * k, now, 16);
+        motion(now);
         if (k < 1) requestAnimationFrame(sweep); else res();
       };
       requestAnimationFrame(sweep);
@@ -978,8 +1016,9 @@ function start() {
     Promise.all([sweepDone, loaded]).then(() => {
       layout();
       scrollTo(0, landY(target));
+      lie = target - hourAtY(scrollY + SH * 0.5);
+      motion(performance.now());
       document.body.classList.add('ready');
-      items.forEach(it => io.observe(it.el));
       setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; if (!fast) hintScroll(); })); }, q.has('fast') ? 0 : 350);
     });
   });

@@ -65,7 +65,8 @@
     return 1;
   };
   // A block entering takes whichever side needs less help across the column it will travel through, judged by most of
-  // that sky so a small bright spot (the moon) can't tip it, and leans toward where the sky is heading around dawn and dusk.
+  // that sky so a small bright spot (the moon) can't tip it. Only a near tie goes to where the day is heading: light
+  // after noon, dark before. A side that needs real shading never beats one that needs none.
   const entering = c => {
     const need = side => {
       const all = [];
@@ -73,8 +74,7 @@
       all.sort((a, b) => a - b);
       return all[Math.floor((all.length - 1) * 0.9)];
     };
-    const h = clockNow(), nl = need('light'), nd = need('dark'), near = (h >= 16.5 && h <= 21) || (h >= 4 && h <= 8.5);
-    const lean = near ? 0.3 : 0.05;
+    const h = clockNow(), nl = need('light'), nd = need('dark'), lean = 0.04;
     return h >= 12 ? (nl <= nd + lean ? 'light' : 'dark') : (nd <= nl + lean ? 'dark' : 'light');
   };
 
@@ -92,13 +92,16 @@
   }
 
   const gap = (a, b) => Math.min(Math.abs(a - b), 24 - Math.abs(a - b));
-  let lastClock = null;
+  // While the page is booting the sky sweeps from midnight to now in a second or two; nothing read then is worth
+  // keeping. Readings aren't smoothed and sides aren't held until the sweep is over.
+  const booting = () => document.body.classList.contains('booting');
+  let lastClock = null, skyGen = 0;
   function place() {
     if (!ready) return;
     // When time jumps rather than scrolls (landing, the loop at midnight), the scene is new: every block chooses again,
     // against a sky reading taken after the jump.
     const now = clockNow();
-    if (lastClock !== null && gap(now, lastClock) > 0.5) onScreen = new Set();
+    if (booting() || (lastClock !== null && gap(now, lastClock) > 0.5)) onScreen = new Set();
     lastClock = now;
     if (builtClock !== null && gap(now, builtClock) > 0.25) return;
     const seen = new Set(), groups = new Map();
@@ -131,12 +134,13 @@
 
   // Text that is faded out (captions that only show on hover, poems not yet written in) gets no shade.
   const shown = el => { for (let n = el; n && n !== document.body; n = n.parentElement) { const st = getComputedStyle(n); if (+st.opacity < 0.3 || st.visibility === 'hidden' || st.display === 'none') return false; } return true; };
+  // The shade is drawn again only when something it depends on has moved: which lines show, where, on which side,
+  // and the sky reading under them. A page sitting still costs nothing here.
+  let drawn = '';
   function drawShade() {
     const k = 0.5, w = Math.round(innerWidth * k), h = Math.round(innerHeight * k);
-    if (shade.width !== w || shade.height !== h) { shade.width = w; shade.height = h; }
-    shadeCtx.clearRect(0, 0, w, h);
-    shadeCtx.filter = `blur(${Math.round(14 * k)}px)`;
-    const range = document.createRange();
+    const range = document.createRange(), rects = [];
+    let key = `${w} ${h} ${builtClock} ${skyGen}`;
     for (const el of document.querySelectorAll('.sky-ink')) {
       const box = el.getBoundingClientRect();
       if (box.bottom < 0 || box.top > innerHeight || !box.width || !shown(el)) continue;
@@ -145,6 +149,16 @@
       range.selectNodeContents(el);
       for (const r of range.getClientRects()) {
         if (r.bottom < 0 || r.top > innerHeight || r.width < 1) continue;
+        rects.push([side, r]); key += `|${side[0]}${r.left | 0},${r.top | 0},${r.width | 0},${r.height | 0}`;
+      }
+    }
+    if (key === drawn) return;
+    drawn = key;
+    if (shade.width !== w || shade.height !== h) { shade.width = w; shade.height = h; }
+    shadeCtx.clearRect(0, 0, w, h);
+    shadeCtx.filter = `blur(${Math.round(14 * k)}px)`;
+    for (const [side, r] of rects) {
+      {
         const c = cells(r), needs = [];
         for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) { const i = (y * SW + x) * 3; needs.push(shadeNeed(side, [skyRGB[i], skyRGB[i + 1], skyRGB[i + 2]])); }
         needs.sort((p, q) => p - q);
@@ -168,7 +182,14 @@
     for (let i = 0, j = 0; i < src.length; i += 4, j += 3) { raw[j] = src[i]; raw[j + 1] = src[i + 1]; raw[j + 2] = src[i + 2]; }
     // The ink and shade read a sky smoothed over a few frames, so flashes and twinkles don't flicker them.
     // When time jumps (landing, the loop at midnight) the old sky is no guide: start again from this one.
-    const jumped = builtClock !== null && gap(at, builtClock) > 0.5;
+    const jumped = booting() || (builtClock !== null && gap(at, builtClock) > 0.5);
+    if (steady && !jumped) {
+      // Once the smoothed sky has settled on what's drawn (nothing scrolling, no twinkle), the maps would come out
+      // the same; rebuilding and repainting every line for that is wasted on every frame the page sits still.
+      let delta = 0;
+      for (let i = 0; i < src.length; i++) delta = Math.max(delta, Math.abs(src[i] - steady[i]));
+      if (delta < 0.5) { busy = false; return; }
+    }
     if (!steady || jumped) steady = Float32Array.from(src);
     else for (let i = 0; i < src.length; i++) steady[i] += (src[i] - steady[i]) * 0.06;
     src = steady;
@@ -184,7 +205,7 @@
     const lu = lightMap.toDataURL(), du = darkMap.toDataURL();
     const decode = u => { const img = new Image(); img.src = u; return img.decode().catch(() => {}); };
     Promise.all([decode(lu), decode(du)]).then(() => {
-      skyLum = lums; skyRGB = rgbs; rawRGB = raw; builtClock = at;
+      skyLum = lums; skyRGB = rgbs; rawRGB = raw; builtClock = at; skyGen++;
       if (!calm || jumped) calm = Float32Array.from(lums); else for (let j = 0; j < lums.length; j++) calm[j] += (lums[j] - calm[j]) * 0.15;
       root.style.setProperty('--ink-light', `url(${lu})`);
       root.style.setProperty('--ink-dark', `url(${du})`);
@@ -192,15 +213,13 @@
       if (pending) build();
     });
   }
-  // The text reads the sky as drawn before snow and rain fall across it.
+  // The reading: the day page draws its sky model small onto this canvas (skySample), without the falling weather;
+  // a page without that draws the sky canvas down instead.
   const clean = mk(), cleanCtx = clean.getContext('2d');
-  let cleanFresh = false;
-  window.skyInkClean = sky => { cleanCtx.drawImage(sky, 0, 0, SW, SH); cleanFresh = true; };
-  window.skyInk = sky => {
+  window.skyInk = (sky, h, t) => {
     place();
     if (!sky?.width) return;
-    if (!cleanFresh) cleanCtx.drawImage(sky, 0, 0, SW, SH);
-    cleanFresh = false;
+    if (window.skySample) window.skySample(clean, SW, SH, h, t); else cleanCtx.drawImage(sky, 0, 0, SW, SH);
     pending = clean;
     if (!busy) build();
   };
