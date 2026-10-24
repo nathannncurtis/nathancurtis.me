@@ -22,6 +22,9 @@ const ACCEPTED = {
   // Blocking time, layout shift and bytes still count.
   // Its text is painted with sky ink Lighthouse can't see; home-ink.spec judges that legibility hour by hour.
   '/': ['performance', 'largest-contentful-paint', 'color-contrast'],
+  // On the throttled phone run the opening's own frames (the sky sweeping up, the ink reading it) are the blocking
+  // time, and whether they count turns on where Lighthouse places "interactive" from run to run. Desktop still holds it.
+  '/@mobile': ['total-blocking-time'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
