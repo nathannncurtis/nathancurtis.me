@@ -20,7 +20,8 @@ const ACCEPTED = {
   // The day page holds its content behind a timed opening (the signature, a line, the sky sweeping up); that
   // wait is most of LCP and so of the score, on phone and desktop alike. It's the design, not load time.
   // Blocking time, layout shift and bytes still count.
-  '/': ['performance', 'largest-contentful-paint'],
+  // Its text is painted with sky ink Lighthouse can't see; home-ink.spec judges that legibility hour by hour.
+  '/': ['performance', 'largest-contentful-paint', 'color-contrast'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
