@@ -316,7 +316,7 @@ const wxForce = (() => { const v = new URLSearchParams(location.search).get('wx'
   if (sky === 'clear') return { ...base, amount: 0 };
   return { ...base, cloud: sky === 'fog' ? 0.6 : 0.9, wind: sky === 'storm' ? 35 : sky === 'snow' ? 8 : 15 }; })();
 if (wxForce) WX = wxForce;
-else fetch(SKY_URL, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.sky && d.sky !== 'unknown') WX = d; }).catch(() => {});
+const weatherReady = wxForce ? Promise.resolve(wxForce) : fetch(SKY_URL, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.sky && d.sky !== 'unknown') WX = d; return WX; }).catch(() => null);
 const drops = Array.from({ length: 420 }, () => ({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 0.8, p: Math.random() * 6.28 }));
 let bolt = { t: -1 }, nextBolt = 4000;
 let wxAll = !!wxForce;
@@ -849,6 +849,7 @@ clock.onclick = () => scrollTo({ top: yAtHour(nowHour()) - SH * 0.5, behavior: r
 const boot = document.getElementById('boot');
 const sigSvg = document.getElementById('sig');
 const logo = document.getElementById('logo');
+const openingNote = document.getElementById('opening-note');
 function signature() {
   const S = window.SIG;
   const paths = S.paths.map(p => `<path d="${p.d}" stroke-width="${p.w}"/>`).join('');
@@ -858,7 +859,7 @@ function signature() {
   logo.innerHTML = paths;
   const ps = [...sigSvg.querySelectorAll('path')];
   const total = ps.reduce((a, p) => a + p.getTotalLength(), 0);
-  const speed = 1700 / total;
+  const speed = 1450 / total;
   let t = 0;
   ps.forEach(p => {
     const L = p.getTotalLength();
@@ -870,11 +871,13 @@ function signature() {
   return t;
 }
 function flyLogo() {
+  return new Promise(resolve => {
   const from = sigSvg.getBoundingClientRect(), to = logo.getBoundingClientRect();
   const sx = to.width / from.width;
   const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
   const a = sigSvg.animate([{ transform: 'translate(-50%, -50%)' }, { transform: `translate(calc(-50% + ${dx.toFixed(2)}px), calc(-50% + ${dy.toFixed(2)}px)) scale(${sx.toFixed(4)})` }], { duration: 900, easing: 'cubic-bezier(.6,0,.2,1)', fill: 'forwards' });
-  a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; };
+  a.onfinish = () => { logo.style.transition = 'none'; document.getElementById('chrome').classList.add('ready'); sigSvg.style.display = 'none'; resolve(); };
+  });
 }
 function preloadAll() {
   const urls = [...new Set([...document.images].filter(i => i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
@@ -892,7 +895,33 @@ function start() {
   if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
-  const sweepStart = new Promise(r => setTimeout(r, q.has('fast') ? 50 : drawn * 0.72));
+  const typeText = (el, text, delay = 11) => new Promise(resolve => {
+    el.textContent = '';
+    let i = 0;
+    const type = () => { el.textContent = text.slice(0, ++i); if (i < text.length) setTimeout(type, delay); else resolve(); };
+    if (!text.length) resolve(); else type();
+  });
+  const describeWeather = d => {
+    if (!d) return 'conditions unavailable nearby';
+    if (d.sky === 'clear' && d.cloud > .68) return 'overcast nearby';
+    if (d.sky === 'clear' && d.cloud > .28) return 'clouds nearby';
+    return ({ clear: 'clear skies nearby', fog: 'fog nearby', drizzle: 'drizzle nearby', rain: 'rain nearby', storm: 'a storm nearby', snow: 'snow nearby' })[d.sky] || 'conditions unavailable nearby';
+  };
+  const sweepStart = new Promise(resolve => {
+    addEventListener('opening-leaf-finished', () => {
+      setTimeout(() => { openingNote.classList.add('leaving'); setTimeout(resolve, 1150); }, 1300);
+    }, { once: true });
+    setTimeout(async () => {
+      await flyLogo();
+      const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+      const weather = await Promise.race([weatherReady.then(describeWeather), new Promise(r => setTimeout(() => r('weather is unavailable nearby'), 900))]);
+      openingNote.classList.add('typing');
+      await typeText(openingNote.querySelector('.opening-time b'), time);
+      await typeText(openingNote.querySelector('.opening-weather b'), weather);
+      await typeText(openingNote.querySelector('.opening-prompt'), 'Scroll to move the clock and sky through its hours.', 8);
+      dispatchEvent(new Event('opening-leaf-finished'));
+    }, drawn + 60);
+  });
   sweepStart.then(() => {
     layout();
     scrollTo(0, landY(target));
@@ -912,7 +941,7 @@ function start() {
       scrollTo(0, landY(target));
       document.body.classList.add('ready');
       items.forEach(it => io.observe(it.el));
-      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { flyLogo(); booting = false; lastHour = -1; })); }, q.has('fast') ? 0 : 350);
+      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; })); }, q.has('fast') ? 0 : 350);
     });
   });
 }
