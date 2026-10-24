@@ -165,7 +165,9 @@
     const raw = new Uint8Array(SW * SH * 3);
     for (let i = 0, j = 0; i < src.length; i += 4, j += 3) { raw[j] = src[i]; raw[j + 1] = src[i + 1]; raw[j + 2] = src[i + 2]; }
     // The ink and shade read a sky smoothed over a few frames, so flashes and twinkles don't flicker them.
-    if (!steady) steady = Float32Array.from(src);
+    // When time jumps (landing, the loop at midnight) the old sky is no guide: start again from this one.
+    const jumped = builtClock !== null && gap(at, builtClock) > 0.5;
+    if (!steady || jumped) steady = Float32Array.from(src);
     else for (let i = 0; i < src.length; i++) steady[i] += (src[i] - steady[i]) * 0.06;
     src = steady;
     const lc = lightMap.getContext('2d'), dc = darkMap.getContext('2d');
@@ -181,7 +183,7 @@
     const decode = u => { const img = new Image(); img.src = u; return img.decode().catch(() => {}); };
     Promise.all([decode(lu), decode(du)]).then(() => {
       skyLum = lums; skyRGB = rgbs; rawRGB = raw; builtClock = at;
-      if (!calm) calm = Float32Array.from(lums); else for (let j = 0; j < lums.length; j++) calm[j] += (lums[j] - calm[j]) * 0.15;
+      if (!calm || jumped) calm = Float32Array.from(lums); else for (let j = 0; j < lums.length; j++) calm[j] += (lums[j] - calm[j]) * 0.15;
       root.style.setProperty('--ink-light', `url(${lu})`);
       root.style.setProperty('--ink-dark', `url(${du})`);
       ready = true; place(); busy = false;
@@ -192,7 +194,10 @@
   const clean = mk(), cleanCtx = clean.getContext('2d');
   let cleanFresh = false;
   window.skyInkClean = sky => { cleanCtx.drawImage(sky, 0, 0, SW, SH); cleanFresh = true; };
+  const boot = document.getElementById('boot');
   window.skyInk = sky => {
+    // Nothing to read while the opening veil still covers the sky.
+    if (boot && !boot.classList.contains('off')) return;
     place();
     if (!sky?.width) return;
     if (!cleanFresh) cleanCtx.drawImage(sky, 0, 0, SW, SH);

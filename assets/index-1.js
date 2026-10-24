@@ -931,7 +931,7 @@ function start() {
   const fast = q.has('fast');
   const writeLine = new Promise(resolve => setTimeout(async () => {
     const now = new Date(), hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const w = await Promise.race([weatherReady.then(d => sayWeather(d, now.getHours() + now.getMinutes() / 60)), new Promise(r => setTimeout(() => r(''), 500))]);
+    const w = await Promise.race([weatherReady.then(d => sayWeather(d, now.getHours() + now.getMinutes() / 60)), new Promise(r => setTimeout(() => r(''), 300))]);
     openingNote.textContent = w ? `${hhmm} where you are; ${w}.` : `${hhmm} where you are.`;
     const sig = sigSvg.getBoundingClientRect();
     openingNote.style.top = `${Math.round(sig.bottom + Math.min(28, sig.height * 0.3))}px`;
@@ -940,11 +940,11 @@ function start() {
     // A soft edge moves left to right across the line, the way the pen moves across the signature.
     openingNote.style.maskImage = openingNote.style.webkitMaskImage = 'linear-gradient(90deg, #000 40%, transparent 60%)';
     openingNote.style.maskSize = openingNote.style.webkitMaskSize = '250% 100%';
-    const a = openingNote.animate([{ maskPosition: '100% 0', webkitMaskPosition: '100% 0' }, { maskPosition: '0 0', webkitMaskPosition: '0 0' }], { duration: 1100, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    const a = openingNote.animate([{ maskPosition: '100% 0', webkitMaskPosition: '100% 0' }, { maskPosition: '0 0', webkitMaskPosition: '0 0' }], { duration: 900, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
     a.onfinish = resolve;
   }, fast ? 0 : drawn * 0.7));
   // The line holds long enough to read, then the sky comes up behind it while the signature goes to its corner.
-  const sweepStart = writeLine.then(() => new Promise(r => setTimeout(r, fast ? 0 : 800))).then(() => {
+  const sweepStart = writeLine.then(() => new Promise(r => setTimeout(r, fast ? 0 : 600))).then(() => {
     if (!fast) openingNote.animate([{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(3px)' }], { duration: 900, easing: 'ease-in', fill: 'forwards' });
     flyLogo();
   });
