@@ -5,7 +5,7 @@ import desktop from 'lighthouse/core/config/desktop-config.js';
 import * as launcher from 'chrome-launcher';
 import { chromium } from '@playwright/test';
 import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
-import { BASE } from './pages.mjs';
+import { BASE, OUTSIDE } from './pages.mjs';
 
 // Scores are 0-100. Raise a floor when the page gets better; never lower one to go green.
 // A floor of 100 is checked audit by audit, so an accepted audit below doesn't hide a new one.
@@ -61,10 +61,13 @@ try {
       const ok = new Set([...(ACCEPTED[path] ?? []), ...(ACCEPTED[`${path}@${form}`] ?? [])]);
       const problems = [];
       const a = l.audits, b = BUDGETS[form];
+      // Console errors from outside calls (GitHub's API rate-limits a shared runner) say nothing about the site; the
+      // browser tests ignore the same hosts. Only the site's own errors count.
+      const outside = id => id === 'errors-in-console' && (a[id].details?.items ?? []).every(i => OUTSIDE.test(`${i.sourceLocation?.url ?? ''} ${i.description ?? ''}`));
       for (const [k, floor] of Object.entries(FLOORS[form])) {
         if (floor < 100) { if (scores[k] < floor && !ok.has(k)) problems.push(`${k} ${scores[k]} < ${floor}`); continue; }
         for (const ref of l.categories[k].auditRefs)
-          if (ref.weight > 0 && a[ref.id].score !== null && a[ref.id].score < 1 && !ok.has(ref.id)) problems.push(`${k}: ${ref.id} (${a[ref.id].title})`);
+          if (ref.weight > 0 && a[ref.id].score !== null && a[ref.id].score < 1 && !ok.has(ref.id) && !outside(ref.id)) problems.push(`${k}: ${ref.id} (${a[ref.id].title})`);
       }
       for (const t of ['largest-contentful-paint', 'cumulative-layout-shift', 'total-blocking-time']) if (a[t].numericValue > b[t] && !ok.has(t)) problems.push(`${t} ${Math.round(a[t].numericValue * 1000) / 1000} > ${b[t]}`);
       const bytes = Object.fromEntries((a['resource-summary']?.details?.items ?? []).map(i => [i.resourceType, i.transferSize]));
