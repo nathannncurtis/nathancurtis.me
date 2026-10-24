@@ -887,6 +887,28 @@ function preloadAll() {
   const urls = [...new Set([...document.images].filter(i => i.loading !== 'lazy').map(i => i.currentSrc || i.src).filter(Boolean))];
   return Promise.all(urls.map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u; im.decode?.().then(r, r); })));
 }
+// If nobody has scrolled a few seconds after landing, the day drifts forward a quarter hour and settles back,
+// showing that scrolling moves the clock and the sky. Once, and never against the reader's hand.
+function hintScroll() {
+  if (reduced) return;
+  let touched = false;
+  const stop = () => { touched = true; };
+  const evs = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+  evs.forEach(e => addEventListener(e, stop, { once: true, passive: true }));
+  setTimeout(() => {
+    evs.forEach(e => removeEventListener(e, stop));
+    if (touched || document.hidden) return;
+    const y0 = scrollY, h = hourAtY(y0 + SH * 0.5), d = yAtHour(Math.min(h + 0.25, 23.9)) - yAtHour(h), t0 = performance.now(), dur = 2400;
+    const step = now => {
+      if (touched) return;
+      const k = clamp((now - t0) / dur, 0, 1);
+      scrollTo(0, y0 + d * Math.sin(Math.PI * ease(k)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    evs.forEach(e => addEventListener(e, stop, { once: true, passive: true }));
+    requestAnimationFrame(step);
+  }, 4000);
+}
 function start() {
   sizeSky();
   const q = new URLSearchParams(location.search);
@@ -899,32 +921,32 @@ function start() {
   if (firstImage) { firstImage.loading = 'eager'; firstImage.fetchPriority = 'high'; }
   const drawn = signature();
   const loaded = Promise.race([preloadAll(), new Promise(r => setTimeout(r, 8000))]);
-  const typeText = (el, text, delay = 11) => new Promise(resolve => {
-    el.textContent = '';
-    let i = 0;
-    const type = () => { el.textContent = text.slice(0, ++i); if (i < text.length) setTimeout(type, delay); else resolve(); };
-    if (!text.length) resolve(); else type();
-  });
-  const describeWeather = d => {
-    if (!d) return 'conditions unavailable nearby';
-    if (d.sky === 'clear' && d.cloud > .68) return 'overcast nearby';
-    if (d.sky === 'clear' && d.cloud > .28) return 'clouds nearby';
-    return ({ clear: 'clear skies nearby', fog: 'fog nearby', drizzle: 'drizzle nearby', rain: 'rain nearby', storm: 'a storm nearby', snow: 'snow nearby' })[d.sky] || 'conditions unavailable nearby';
+  // One line under the signature: the time here and the sky outside, written in as the signature finishes.
+  const SAY = { fog: 'foggy', drizzle: 'drizzly', rain: 'raining', storm: 'stormy', snow: 'snowing' };
+  const sayWeather = (d, h) => {
+    if (!d || !d.sky || d.sky === 'unknown') return '';
+    const what = d.sky === 'clear' ? (d.cloud > .68 ? 'overcast' : d.cloud > .28 ? 'cloudy' : 'clear') : SAY[d.sky];
+    return what ? `${what} ${h >= 5 && h < 17 ? 'today' : 'tonight'}` : '';
   };
-  const sweepStart = new Promise(resolve => {
-    addEventListener('opening-leaf-finished', () => {
-      setTimeout(() => { openingNote.classList.add('leaving'); setTimeout(resolve, 1150); }, 1300);
-    }, { once: true });
-    setTimeout(async () => {
-      await flyLogo();
-      const time = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
-      const weather = await Promise.race([weatherReady.then(describeWeather), new Promise(r => setTimeout(() => r('weather is unavailable nearby'), 900))]);
-      openingNote.classList.add('typing');
-      await typeText(openingNote.querySelector('.opening-time b'), time);
-      await typeText(openingNote.querySelector('.opening-weather b'), weather);
-      await typeText(openingNote.querySelector('.opening-prompt'), 'Scroll to move the clock and sky through its hours.', 8);
-      dispatchEvent(new Event('opening-leaf-finished'));
-    }, drawn + 60);
+  const fast = q.has('fast');
+  const writeLine = new Promise(resolve => setTimeout(async () => {
+    const now = new Date(), hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const w = await Promise.race([weatherReady.then(d => sayWeather(d, now.getHours() + now.getMinutes() / 60)), new Promise(r => setTimeout(() => r(''), 500))]);
+    openingNote.textContent = w ? `${hhmm} where you are; ${w}.` : `${hhmm} where you are.`;
+    const sig = sigSvg.getBoundingClientRect();
+    openingNote.style.top = `${Math.round(sig.bottom + Math.min(28, sig.height * 0.3))}px`;
+    openingNote.classList.add('on');
+    if (reduced || fast) return resolve();
+    // A soft edge moves left to right across the line, the way the pen moves across the signature.
+    openingNote.style.maskImage = openingNote.style.webkitMaskImage = 'linear-gradient(90deg, #000 40%, transparent 60%)';
+    openingNote.style.maskSize = openingNote.style.webkitMaskSize = '250% 100%';
+    const a = openingNote.animate([{ maskPosition: '100% 0', webkitMaskPosition: '100% 0' }, { maskPosition: '0 0', webkitMaskPosition: '0 0' }], { duration: 1100, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    a.onfinish = resolve;
+  }, fast ? 0 : drawn * 0.7));
+  // The line holds long enough to read, then the sky comes up behind it while the signature goes to its corner.
+  const sweepStart = writeLine.then(() => new Promise(r => setTimeout(r, fast ? 0 : 800))).then(() => {
+    if (!fast) openingNote.animate([{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(3px)' }], { duration: 900, easing: 'ease-in', fill: 'forwards' });
+    flyLogo();
   });
   sweepStart.then(() => {
     layout();
@@ -945,7 +967,7 @@ function start() {
       scrollTo(0, landY(target));
       document.body.classList.add('ready');
       items.forEach(it => io.observe(it.el));
-      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; })); }, q.has('fast') ? 0 : 350);
+      setTimeout(() => { document.body.classList.remove('booting'); requestAnimationFrame(() => requestAnimationFrame(() => { booting = false; lastHour = -1; if (!fast) hintScroll(); })); }, q.has('fast') ? 0 : 350);
     });
   });
 }
