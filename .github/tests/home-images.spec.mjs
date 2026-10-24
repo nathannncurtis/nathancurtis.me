@@ -35,8 +35,19 @@ for (const width of [390, 1440]) for (const deviceScaleFactor of [1, 2]) {
     }
     const sum = await page.evaluate(() => performance.getEntriesByType('resource').filter(r => r.initiatorType === 'img').reduce((s, r) => ({ n: s.n + 1, bytes: s.bytes + r.transferSize, slowest: Math.max(s.slowest, r.duration) }), { n: 0, bytes: 0, slowest: 0 }));
     console.log(`${width}px DPR ${deviceScaleFactor}: ${sum.n} photos, ${(sum.bytes / 1e6).toFixed(1)} MB in ${((Date.now() - t0) / 1000).toFixed(1)}s, slowest fetch ${Math.round(sum.slowest)}ms`);
+    // Opening the lightbox flies the thumbnail up (950ms), then swaps in the full-size file once it has decoded.
+    // The same 15s the photos got: the full file comes off the same shared server, and the swap waits on the fly.
+    const t1 = Date.now();
     await page.evaluate(() => openLight(0));
-    await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('#light .pic')).backgroundImage.includes(photos[0].p.src))).toBe(true);
+    const swapped = await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector('#light .pic')).backgroundImage.includes(photos[0].p.src)), { timeout: 15_000 }).toBe(true).then(() => true, () => false);
+    const light = await page.evaluate(() => {
+      const want = photos[0].p.src, r = performance.getEntriesByName(location.origin + want)[0];
+      const anims = document.getAnimations().filter(a => a.effect?.target?.closest?.('#light, #fly')).map(a => `${a.effect.target.id || a.effect.target.className}:${a.playState}@${Math.round(a.currentTime ?? -1)}`);
+      return `light="${document.getElementById('light').className}" fly=${document.getElementById('fly').style.display || 'unset'} pic=${getComputedStyle(document.querySelector('#light .pic')).backgroundImage.split('/').pop()} want=${want.split('/').pop()}`
+        + (r ? ` full: start=${Math.round(r.startTime)}ms took=${Math.round(r.duration)}ms bytes=${r.transferSize} status=${r.responseStatus}` : ' full: no response yet') + ` animations=[${anims.join(' ')}]`;
+    });
+    console.log(`${width}px DPR ${deviceScaleFactor}: lightbox ${swapped ? 'swapped to the full file' : 'did not swap'} in ${Date.now() - t1}ms; ${light}`);
+    expect(swapped, `lightbox didn't swap to the full file in 15s; ${light}`).toBe(true);
     await context.close();
   });
 }
