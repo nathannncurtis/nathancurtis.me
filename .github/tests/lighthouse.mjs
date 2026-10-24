@@ -17,10 +17,10 @@ const FLOORS = {
 const ACCEPTED = {
   '/work': ['color-contrast'],
   '/privacy': ['color-contrast'],
-  // The day page holds its content behind a timed opening (the signature, a line, the sky sweeping up); on the
-  // throttled phone run that wait is most of LCP and so of the score. It's the design, not load time. Blocking
-  // time, layout shift and bytes still count, and desktop is held to everything.
-  '/@mobile': ['performance', 'largest-contentful-paint'],
+  // The day page holds its content behind a timed opening (the signature, a line, the sky sweeping up); that
+  // wait is most of LCP and so of the score, on phone and desktop alike. It's the design, not load time.
+  // Blocking time, layout shift and bytes still count.
+  '/': ['performance', 'largest-contentful-paint'],
 };
 const LOCAL = !/^https:/.test(BASE);
 const SETTINGS = {
