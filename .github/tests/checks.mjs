@@ -4,8 +4,8 @@ import { OUTSIDE } from './pages.mjs';
 
 // Known axe findings on the site, accepted until the follow-up beside each lands. Anything else still fails.
 const ACCEPTED_AXE = [
-  // The day page and /work colour their text from the sky or a muted ink; contrast is a deliberate look, not a bug.
-  { rule: 'color-contrast', path: '/', target: /./ },
+  // /work colours its text with a muted ink; contrast is a deliberate look, not a bug. The day page is held to
+  // legibility by home-ink.spec.mjs, which reads the sky behind each line.
   { rule: 'color-contrast', path: '/work', target: /./ },
   { rule: 'color-contrast', path: '/privacy', target: /./ },
   { rule: 'color-contrast', path: '/no-such-page', target: /./ },
