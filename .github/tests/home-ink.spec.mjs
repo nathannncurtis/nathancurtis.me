@@ -40,8 +40,8 @@ const READ = () => {
 };
 
 for (const width of [390, 1440]) for (const weather of ['clear', 'overcast', 'fog', 'storm']) {
-  test(`day page text is legible every hour ${width}px ${weather}`, async ({ page, browserName }) => {
-    test.skip(browserName !== 'chromium', 'reads canvas pixels; one engine is enough');
+  test(`day page text is legible every hour ${width}px ${weather}`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'chromium', 'reads canvas pixels; one engine is enough');
     test.setTimeout(240_000);
     await stubAnalytics(page);
     await page.setViewportSize({ width, height: 900 });
