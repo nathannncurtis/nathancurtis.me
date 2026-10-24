@@ -103,6 +103,8 @@
     if (builtClock !== null && gap(now, builtClock) > 0.25) return;
     const seen = new Set(), groups = new Map();
     for (const el of document.querySelectorAll(TEXT)) {
+      // Marks every line this script inks, on screen or not.
+      if (!el.hasAttribute('data-sky-ink')) el.setAttribute('data-sky-ink', '');
       const r = el.getBoundingClientRect();
       if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth || !r.width) continue;
       const g = groupOf(el);
